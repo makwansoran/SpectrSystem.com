@@ -44,7 +44,15 @@ app.use((req, res, next) => {
 });
 
 // Initialize database
-initializeDatabase();
+// Note: initializeDatabase is async for PostgreSQL, sync for SQLite
+const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+if (dbType === 'postgresql') {
+  (async () => {
+    await initializeDatabase();
+  })();
+} else {
+  initializeDatabase();
+}
 
 // Verify email configuration on startup
 verifyEmailConfig();
