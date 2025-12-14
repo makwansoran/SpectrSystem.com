@@ -1,6 +1,6 @@
 /**
  * Store Page
- * Data packs marketplace for purchasing data sets
+ * Subscription marketplace for purchasing data subscriptions
  */
 
 import React, { useState } from 'react';
@@ -57,82 +57,47 @@ const StorePage: React.FC = () => {
   const dataPacks: DataPack[] = [
     {
       id: '1',
-      name: 'Global Business Database',
-      description: 'Comprehensive database of 10M+ companies worldwide with contact information, revenue data, and industry classifications',
-      price: 299,
-      category: 'business',
-      size: '2.5 GB',
-      records: 10000000,
-      format: ['CSV', 'JSON', 'SQL'],
-      featured: true,
-      icon: Building2,
-    },
-    {
-      id: '2',
-      name: 'Consumer Email Database',
-      description: 'Verified email addresses of 50M+ consumers across multiple demographics and regions',
+      name: 'Commodity Trade Data',
+      description: 'Real-time and historical commodity trading data including prices, volumes, and market trends for all major commodities',
       price: 199,
-      category: 'consumer',
-      size: '1.8 GB',
-      records: 50000000,
-      format: ['CSV', 'JSON'],
-      icon: Users,
-    },
-    {
-      id: '3',
-      name: 'Market Research Data',
-      description: 'Industry reports, market trends, and analytics data from 2020-2024 across 50+ industries',
-      price: 149,
-      category: 'research',
-      size: '850 MB',
-      records: 5000000,
-      format: ['CSV', 'JSON', 'PDF'],
-      icon: BarChart3,
-    },
-    {
-      id: '4',
-      name: 'Geographic Data Pack',
-      description: 'Complete geographic datasets including coordinates, postal codes, and administrative boundaries',
-      price: 99,
-      category: 'geographic',
-      size: '450 MB',
-      records: 2000000,
-      format: ['CSV', 'JSON', 'GeoJSON'],
-      icon: Globe,
-    },
-    {
-      id: '5',
-      name: 'Social Media Analytics',
-      description: 'Aggregated social media metrics, engagement data, and trend analysis from major platforms',
-      price: 249,
-      category: 'social',
-      size: '1.2 GB',
-      records: 15000000,
-      format: ['CSV', 'JSON'],
+      category: 'commodity',
+      size: 'Live Stream',
+      records: 0,
+      format: ['API', 'WebSocket', 'CSV', 'JSON'],
+      featured: true,
       icon: TrendingUp,
     },
     {
-      id: '6',
-      name: 'Financial Market Data',
-      description: 'Historical stock prices, forex rates, and cryptocurrency data with real-time updates',
+      id: '2',
+      name: 'World Trade Data',
+      description: 'Comprehensive global trade data including import/export statistics, trade flows, and international commerce analytics',
+      price: 299,
+      category: 'world-trade',
+      size: 'Live Stream',
+      records: 0,
+      format: ['API', 'WebSocket', 'CSV', 'JSON'],
+      featured: true,
+      icon: Globe,
+    },
+    {
+      id: '3',
+      name: 'NYSE Live Data',
+      description: 'Real-time New York Stock Exchange data including live quotes, trades, order book, and market depth information',
       price: 399,
-      category: 'financial',
-      size: '3.1 GB',
-      records: 25000000,
-      format: ['CSV', 'JSON', 'Parquet'],
+      category: 'nyse',
+      size: 'Live Stream',
+      records: 0,
+      format: ['API', 'WebSocket', 'CSV', 'JSON'],
       featured: true,
       icon: Zap,
     },
   ];
 
   const categories = [
-    { id: 'all', name: 'All Packs' },
-    { id: 'business', name: 'Business' },
-    { id: 'consumer', name: 'Consumer' },
-    { id: 'research', name: 'Research' },
-    { id: 'geographic', name: 'Geographic' },
-    { id: 'social', name: 'Social Media' },
-    { id: 'financial', name: 'Financial' },
+    { id: 'all', name: 'All Subscriptions' },
+    { id: 'commodity', name: 'Commodity' },
+    { id: 'world-trade', name: 'World Trade' },
+    { id: 'nyse', name: 'NYSE' },
   ];
 
   const filteredPacks = dataPacks.filter(pack => {
@@ -192,9 +157,9 @@ const StorePage: React.FC = () => {
       <main className="max-w-[1600px] mx-auto px-6 py-8">
         {/* Hero Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-2">Premium Data Packs</h2>
+          <h2 className="text-2xl font-semibold text-slate-900 mb-2">Data Subscriptions</h2>
           <p className="text-sm text-slate-600">
-            Purchase high-quality datasets to power your workflows and intelligence projects
+            Subscribe to premium data feeds to power your workflows and intelligence projects
           </p>
         </div>
 
@@ -293,7 +258,7 @@ const StorePage: React.FC = () => {
           <div className="relative w-full sm:w-64">
             <input
               type="text"
-              placeholder="Search data packs..."
+              placeholder="Search subscriptions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300/50 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 font-mono"
@@ -302,11 +267,11 @@ const StorePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Data Packs Grid */}
+        {/* Subscriptions Grid */}
         {filteredPacks.length === 0 ? (
           <div className="text-center py-16">
             <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-slate-900 mb-1">No data packs found</p>
+            <p className="text-sm font-medium text-slate-900 mb-1">No subscriptions found</p>
             <p className="text-xs text-slate-500">Try adjusting your filters or search terms</p>
           </div>
         ) : (
@@ -338,16 +303,10 @@ const StorePage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Pack Details */}
+                  {/* Subscription Details */}
                   <div className="space-y-2 mb-4 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Records</span>
-                      <span className="font-mono font-medium text-slate-900">
-                        {pack.records.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Size</span>
+                      <span className="text-slate-500">Delivery</span>
                       <span className="font-mono font-medium text-slate-900">{pack.size}</span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -368,8 +327,8 @@ const StorePage: React.FC = () => {
                   {/* Price and Purchase */}
                   <div className="flex items-center justify-between pt-4 border-t border-slate-200">
                     <div>
-                      <div className="text-lg font-semibold text-slate-900">${pack.price}</div>
-                      <div className="text-xs text-slate-500">One-time purchase</div>
+                      <div className="text-lg font-semibold text-slate-900">${pack.price}<span className="text-xs font-normal">/mo</span></div>
+                      <div className="text-xs text-slate-500">Subscription</div>
                     </div>
                     <button
                       onClick={(e) => {
