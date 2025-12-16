@@ -5,10 +5,351 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, Menu, X, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ArrowRight, 
+  Menu, 
+  X, 
+  ChevronDown, 
+  ChevronLeft, 
+  ChevronRight,
+  Zap,
+  Globe,
+  Brain,
+  Search,
+  Database,
+  GitBranch,
+  Play,
+  BarChart3,
+  Webhook,
+  FileText
+} from 'lucide-react';
 import clsx from 'clsx';
 import { useUserStore } from '../stores/userStore';
+
+// Slideshow Component
+// Helper function to calculate equal spacing for nodes
+const calculateNodePositions = (count: number): number[] => {
+  const start = 15; // Start position (15% from left)
+  const end = 85; // End position (85% from left)
+  const totalWidth = end - start;
+  const spacing = totalWidth / (count - 1);
+  
+  return Array.from({ length: count }, (_, i) => start + (spacing * i));
+};
+
+const slides = [
+  {
+    title: "Competitive Intelligence Monitor",
+    description: "Automatically track competitor pricing, product launches, and marketing changes across the web with real-time monitoring and AI-powered analysis. Web scraping requires ongoing maintenance as sites change, and legal considerations apply. Best for tracking public data rather than deep competitive intelligence.",
+    nodes: [
+      { id: 1, label: "Web Scraper", type: "scraper" },
+      { id: 2, label: "AI Analysis", type: "ai" },
+      { id: 3, label: "Data Store", type: "database" },
+      { id: 4, label: "Dashboard", type: "dashboard" }
+    ]
+  },
+  {
+    title: "Automated Due Diligence Workflow",
+    description: "Complete OSINT research pipeline with sanctions checks, corporate registry lookups, and social footprint analysis for automated risk assessment. Excellent fit with reliable data sources and a core use case for intelligence nodes. Effectiveness depends on data quality and freshness.",
+    nodes: [
+      { id: 1, label: "Entity Input", type: "trigger" },
+      { id: 2, label: "Sanctions Check", type: "intelligence" },
+      { id: 3, label: "Registry Lookup", type: "intelligence" },
+      { id: 4, label: "Social Analysis", type: "intelligence" },
+      { id: 5, label: "Risk Score", type: "decision" }
+    ]
+  },
+  {
+    title: "Dynamic Pricing Engine",
+    description: "Automatically adjust prices based on real-time market data, inventory levels, and competitor pricing using AI-powered optimization. Works well with reliable data feeds but requires careful safeguards to prevent revenue loss from bad data or flawed logic.",
+    nodes: [
+      { id: 1, label: "Market Data", type: "database" },
+      { id: 2, label: "Competitor Prices", type: "scraper" },
+      { id: 3, label: "AI Pricing Logic", type: "ai" },
+      { id: 4, label: "Update Prices", type: "action" }
+    ]
+  },
+  {
+    title: "Automated Customer Onboarding",
+    description: "Streamlined onboarding workflow where entity signup triggers automated verification, risk scoring, and approval or rejection decisions. Strong use case matching the platform's trigger and decision nodes, though human oversight is still needed for edge cases and exceptions.",
+    nodes: [
+      { id: 1, label: "Signup Trigger", type: "trigger" },
+      { id: 2, label: "Verification", type: "action" },
+      { id: 3, label: "Risk Scoring", type: "ai" },
+      { id: 4, label: "Decision Gate", type: "decision" },
+      { id: 5, label: "Approve/Reject", type: "action" }
+    ]
+  },
+  {
+    title: "Supply Chain Anomaly Detection",
+    description: "Monitor shipping data in real-time to detect delays and flag unusual patterns with automated alerts for supply chain disruptions. Effective with reliable APIs, though may produce false positives without proper training data. Best used for alerts rather than full automation.",
+    nodes: [
+      { id: 1, label: "Shipping API", type: "database" },
+      { id: 2, label: "Pattern Analysis", type: "ai" },
+      { id: 3, label: "Anomaly Detection", type: "decision" },
+      { id: 4, label: "Alert System", type: "action" }
+    ]
+  },
+  {
+    title: "Content Aggregation & Summarization",
+    description: "Collect content from news feeds and RSS sources, then automatically summarize and categorize using AI with results displayed in dashboards. AI summarization works excellently, though web scraping can be fragile. More reliable when using RSS feeds or official APIs.",
+    nodes: [
+      { id: 1, label: "RSS/API Feed", type: "scraper" },
+      { id: 2, label: "AI Summarize", type: "ai" },
+      { id: 3, label: "Categorize", type: "ai" },
+      { id: 4, label: "Dashboard", type: "dashboard" }
+    ]
+  },
+  {
+    title: "Automated Compliance Reporting",
+    description: "Pull data from multiple sources, merge and format automatically, then generate compliance reports in a streamlined workflow. Strong use case when data sources are stable, though manual review is still recommended for accuracy. Provides significant time savings but isn't fully automated.",
+    nodes: [
+      { id: 1, label: "Data Sources", type: "database" },
+      { id: 2, label: "Data Merge", type: "action" },
+      { id: 3, label: "Format Report", type: "ai" },
+      { id: 4, label: "Generate PDF", type: "action" }
+    ]
+  },
+  {
+    title: "Lead Qualification & Enrichment",
+    description: "Automatically enrich incoming leads with company data, score them using AI, and route qualified leads to the sales team. Enrichment APIs are reliable and effective, though scoring logic requires tuning for best results. Clear ROI and time savings.",
+    nodes: [
+      { id: 1, label: "Lead Input", type: "trigger" },
+      { id: 2, label: "Data Enrichment", type: "intelligence" },
+      { id: 3, label: "Lead Scoring", type: "ai" },
+      { id: 4, label: "Route to Sales", type: "action" }
+    ]
+  },
+  {
+    title: "Market Research Automation",
+    description: "Track social media sentiment, news mentions, and market trends automatically to generate insights and detect emerging patterns. Sentiment analysis can be noisy and imperfect, so it's best used for identifying trends rather than making precise predictions.",
+    nodes: [
+      { id: 1, label: "Social Media", type: "scraper" },
+      { id: 2, label: "News Feeds", type: "scraper" },
+      { id: 3, label: "Sentiment Analysis", type: "ai" },
+      { id: 4, label: "Trend Detection", type: "ai" },
+      { id: 5, label: "Insights Dashboard", type: "dashboard" }
+    ]
+  },
+  {
+    title: "Automated Document Processing",
+    description: "Receive documents, extract data using OCR and AI, validate the information, and automatically store in your database. Works best with structured documents, while PDFs and images are more challenging. OCR combined with AI extraction improves accuracy but isn't perfect.",
+    nodes: [
+      { id: 1, label: "Document Input", type: "trigger" },
+      { id: 2, label: "OCR/Extract", type: "ai" },
+      { id: 3, label: "Validate Data", type: "decision" },
+      { id: 4, label: "Store in DB", type: "database" }
+    ]
+  }
+].map(slide => ({
+  ...slide,
+  nodes: slide.nodes.map((node, index) => ({
+    ...node,
+    x: calculateNodePositions(slide.nodes.length)[index]
+  }))
+}));
+
+const nodeColors: Record<string, { bg: string; border: string; text: string; icon: React.ComponentType<{ className?: string }> }> = {
+  trigger: { 
+    bg: "bg-gradient-to-br from-blue-50/50 to-blue-50", 
+    border: "border-blue-200", 
+    text: "text-blue-700",
+    icon: Webhook
+  },
+  scraper: { 
+    bg: "bg-gradient-to-br from-purple-50/50 to-purple-50", 
+    border: "border-purple-200", 
+    text: "text-purple-700",
+    icon: Globe
+  },
+  ai: { 
+    bg: "bg-gradient-to-br from-emerald-50/50 to-emerald-50", 
+    border: "border-emerald-200", 
+    text: "text-emerald-700",
+    icon: Brain
+  },
+  intelligence: { 
+    bg: "bg-gradient-to-br from-amber-50/50 to-amber-50", 
+    border: "border-amber-200", 
+    text: "text-amber-700",
+    icon: Search
+  },
+  database: { 
+    bg: "bg-gradient-to-br from-slate-50/50 to-slate-50", 
+    border: "border-slate-200", 
+    text: "text-slate-700",
+    icon: Database
+  },
+  decision: { 
+    bg: "bg-gradient-to-br from-orange-50/50 to-orange-50", 
+    border: "border-orange-200", 
+    text: "text-orange-700",
+    icon: GitBranch
+  },
+  action: { 
+    bg: "bg-gradient-to-br from-red-50/50 to-red-50", 
+    border: "border-red-200", 
+    text: "text-red-700",
+    icon: Play
+  },
+  dashboard: { 
+    bg: "bg-gradient-to-br from-indigo-50/50 to-indigo-50", 
+    border: "border-indigo-200", 
+    text: "text-indigo-700",
+    icon: BarChart3
+  }
+};
+
+const SlideshowComponent: React.FC = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const totalSlides = slides.length;
+
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % totalSlides);
+    }, 8000); // Change slide every 8 seconds
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, totalSlides]);
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+    setIsAutoPlaying(false);
+  };
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % totalSlides);
+    setIsAutoPlaying(false);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
+    setIsAutoPlaying(false);
+  };
+
+  const currentSlideData = slides[currentSlide];
+
+  return null;
+};
+
+// Resources Carousel Component
+const ResourcesCarousel: React.FC = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const resources = [
+    {
+      category: 'Research',
+      title: 'Advanced Intelligence Research',
+      description: 'Deep dive into cutting-edge research methodologies and intelligence gathering techniques.',
+    },
+    {
+      category: 'Investments',
+      title: 'Investment Analysis & Strategy',
+      description: 'Comprehensive investment research and market analysis using advanced data platforms.',
+    },
+    {
+      category: 'Finance',
+      title: 'Financial Intelligence Systems',
+      description: 'Real-time financial data analysis and risk assessment for enterprise operations.',
+    },
+    {
+      category: 'News',
+      title: 'News & Media Intelligence',
+      description: 'Automated news aggregation and analysis for staying ahead of market trends.',
+    },
+    {
+      category: 'Blog',
+      title: 'Industry Insights & Updates',
+      description: 'Latest insights, tutorials, and updates from the SPECTR SYSTEM platform.',
+    },
+  ];
+
+  const itemsPerSlide = 3;
+  const totalSlides = Math.ceil(resources.length / itemsPerSlide);
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % totalSlides);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
+  };
+
+  const currentResources = resources.slice(
+    currentIndex * itemsPerSlide,
+    currentIndex * itemsPerSlide + itemsPerSlide
+  );
+
+  return (
+    <div className="relative">
+      <div className="relative overflow-hidden">
+        <div className="grid md:grid-cols-3 gap-8 min-h-[400px]">
+          <AnimatePresence mode="wait">
+            {currentResources.map((resource, index) => (
+              <motion.a
+                key={`${resource.title}-${currentIndex}`}
+                href="#"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ 
+                  duration: 0.3,
+                  delay: index * 0.05,
+                  ease: "easeOut"
+                }}
+                className="block border border-gray-200 p-8 hover:border-gray-300 hover:shadow-sm transition-all group h-full flex flex-col"
+              >
+                <div className="text-xs tracking-widest text-gray-500 mb-3">{resource.category}</div>
+                <h3 className="text-xl font-medium mb-4 text-gray-900 group-hover:text-gray-700 transition-colors">
+                  {resource.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed flex-grow">{resource.description}</p>
+                <div className="mt-6 flex items-center gap-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                  Read More
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </motion.a>
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="flex flex-col items-center gap-4 mt-8">
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={prevSlide}
+            className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-full hover:border-gray-300 hover:bg-gray-50 transition-all"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          <span className="text-sm text-gray-500 font-mono">
+            {currentIndex + 1} / {totalSlides}
+          </span>
+          <button
+            onClick={nextSlide}
+            className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-full hover:border-gray-300 hover:bg-gray-50 transition-all"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-700" />
+          </button>
+        </div>
+        <a
+          href="#"
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          Research Area
+          <ArrowRight className="w-4 h-4" />
+        </a>
+      </div>
+    </div>
+  );
+};
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -583,58 +924,14 @@ const LandingPage: React.FC = () => {
       {/* Resources Section */}
       <section id="resources" className="relative py-32 px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-20"
-          >
-            <div className="text-sm tracking-widest text-gray-500 mb-4">RESOURCES</div>
-            <h2 className="text-4xl lg:text-6xl font-light tracking-tight mb-6 text-gray-900">
-              Learn how organizations use our engine
+          <div className="text-center mb-20">
+            <div className="text-xs tracking-widest text-gray-500 mb-3">WHAT YOU CAN BUILD</div>
+            <h2 className="text-2xl lg:text-3xl font-light tracking-tight mb-6 text-gray-900">
+              Forbidding is forbidden, anything is possible
             </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                category: 'Case Study',
-                title: 'Transforming Defense Operations',
-                description: 'How a leading defense organization uses SPECTR SYSTEM for real-time intelligence.',
-              },
-              {
-                category: 'White Paper',
-                title: 'The Future of Data Platforms',
-                description: 'Exploring the next generation of enterprise data infrastructure.',
-              },
-              {
-                category: 'Webinar',
-                title: 'Getting Started with SPECTR SYSTEM',
-                description: 'Learn the fundamentals of building intelligence applications.',
-              },
-            ].map((resource, index) => (
-              <motion.a
-                key={resource.title}
-                href="#"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="block border border-gray-200 p-8 hover:border-gray-300 hover:shadow-sm transition-all group"
-              >
-                <div className="text-xs tracking-widest text-gray-500 mb-3">{resource.category}</div>
-                <h3 className="text-xl font-medium mb-4 text-gray-900 group-hover:text-gray-700 transition-colors">
-                  {resource.title}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">{resource.description}</p>
-                <div className="mt-6 flex items-center gap-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
-                  Read More
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </motion.a>
-            ))}
           </div>
+
+          <ResourcesCarousel />
         </div>
       </section>
 

@@ -14,7 +14,6 @@ import {
   RefreshCw,
   X,
   BarChart3,
-  Plus,
   CheckCircle2,
   XCircle,
   LayoutDashboard,
@@ -34,9 +33,9 @@ import { getNodeDefinition } from './constants/nodes';
 
 interface WorkflowTab {
   id: string;
-  name: string; // Tab name - completely independent from workflow name
+  name: string; // Fixed name: "Workflow" or "Dashboard"
   type: 'workflow' | 'dashboard';
-  workflowId: string; // Links tab to workflow, but names are independent
+  workflowId: string; // Links tab to workflow
 }
 
 const WorkflowEditor: React.FC = () => {
@@ -45,29 +44,31 @@ const WorkflowEditor: React.FC = () => {
   const [isApiHealthy, setIsApiHealthy] = useState<boolean | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState(true);
   
-  // Tab state - completely independent from workflow state
+  // Tab state - fixed tabs: one Workflow and one Dashboard per project
   const [openTabs, setOpenTabs] = useState<WorkflowTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
-  const [editingTabId, setEditingTabId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tabId: string } | null>(null);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
   const [nodePaletteOpen, setNodePaletteOpen] = useState(true);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [hasShownTemplateModal, setHasShownTemplateModal] = useState(false);
   const tabsInitializedRef = useRef(false);
   const workflowLoadingRef = useRef<string | null>(null);
 
-  // Close context menu on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
-        setContextMenu(null);
+  // Helper function to ensure no duplicate tabs exist
+  const ensureNoDuplicates = (tabs: WorkflowTab[]): WorkflowTab[] => {
+    const seen = new Set<string>();
+    const result: WorkflowTab[] = [];
+    
+    for (const tab of tabs) {
+      const key = `${tab.workflowId}-${tab.type}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(tab);
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    }
+    
+    return result;
+  };
+
 
   // Reset workflow loading ref when URL changes
   useEffect(() => {
@@ -99,22 +100,22 @@ const WorkflowEditor: React.FC = () => {
               return prev;
             }
             
-            // Create tabs for URL workflow - user-initiated, not automatic
+            // Create tabs for URL workflow - fixed names, prevent duplicates
             const workflowTab: WorkflowTab = {
               id: `${urlWorkflowId}-workflow`,
-              name: '', // User can rename independently
+              name: 'Workflow', // Fixed name
               type: 'workflow',
               workflowId: urlWorkflowId,
             };
             const dashboardTab: WorkflowTab = {
               id: `${urlWorkflowId}-dashboard`,
-              name: 'Untitled Dashboard',
+              name: 'Dashboard', // Fixed name
               type: 'dashboard',
               workflowId: urlWorkflowId,
             };
             setActiveTabId(workflowTab.id);
             loadWorkflow(urlWorkflowId);
-            return [workflowTab, dashboardTab];
+            return ensureNoDuplicates([workflowTab, dashboardTab]);
           });
         }
       }
@@ -139,17 +140,17 @@ const WorkflowEditor: React.FC = () => {
       const tempId = `new-${Date.now()}`;
       const workflowTab: WorkflowTab = {
         id: `${tempId}-workflow`,
-        name: '',
+        name: 'Workflow', // Fixed name
         type: 'workflow',
         workflowId: tempId,
       };
       const dashboardTab: WorkflowTab = {
         id: `${tempId}-dashboard`,
-        name: 'Untitled Dashboard',
+        name: 'Dashboard', // Fixed name
         type: 'dashboard',
         workflowId: tempId,
       };
-      setOpenTabs([workflowTab, dashboardTab]);
+      setOpenTabs(ensureNoDuplicates([workflowTab, dashboardTab]));
       setActiveTabId(workflowTab.id);
     }
   }, [urlWorkflowId, showTemplateModal, openTabs.length]); // Only run once on mount if no URL workflow
@@ -181,89 +182,33 @@ const WorkflowEditor: React.FC = () => {
     // Dashboard tabs don't load workflows - they're purely for viewing
   };
 
-  // Handle tab rename - updates tab name and syncs dashboard tab name
-  const handleTabRename = (tabId: string, newName: string) => {
-    setOpenTabs(prev => {
-      const tab = prev.find(t => t.id === tabId);
-      if (!tab) return prev;
-      
-      return prev.map(t => {
-        if (t.id === tabId) {
-          // Update the tab being renamed
-          return { ...t, name: newName };
-        }
-        
-        // If renaming a workflow tab, also update its dashboard tab
-        if (tab.type === 'workflow' && t.workflowId === tab.workflowId && t.type === 'dashboard') {
-          return { ...t, name: `${newName} Dashboard` };
-        }
-        
-        return t;
-      });
-    });
-    // Workflow name in store is NEVER updated - only tab names sync
-  };
-
-  // Handle tab name edit
-  const handleTabNameEdit = (tabId: string) => {
-    const tab = openTabs.find(t => t.id === tabId);
-    if (tab) {
-      setEditingTabId(tabId);
-      setEditingName(tab.name || '');
-    }
-  };
-
-  const handleTabNameSubmit = (tabId: string) => {
-    if (editingName.trim()) {
-      handleTabRename(tabId, editingName.trim());
-    }
-    setEditingTabId(null);
-    setEditingName('');
-  };
-
-  const handleTabNameCancel = () => {
-    setEditingTabId(null);
-    setEditingName('');
-  };
-
-  // Handle tab close
+  // Handle tab close - prevent closing if it's the last tab of its type
   const handleTabClose = (e: React.MouseEvent, tabId: string) => {
     e.stopPropagation();
     const tab = openTabs.find(t => t.id === tabId);
     if (!tab) return;
 
     setOpenTabs(prev => {
+      // Prevent closing if it would leave no tabs
+      if (prev.length <= 2) {
+        return prev; // Keep at least one workflow and one dashboard tab
+      }
+
       let newTabs = prev.filter(t => t.id !== tabId);
 
-      // If closing workflow tab, also close dashboard tab
+      // If closing workflow tab, also close dashboard tab (they're paired)
       if (tab.type === 'workflow') {
         newTabs = newTabs.filter(t => !(t.workflowId === tab.workflowId && t.type === 'dashboard'));
       } else if (tab.type === 'dashboard') {
-        // If closing dashboard tab, also close workflow tab
+        // If closing dashboard tab, also close workflow tab (they're paired)
         newTabs = newTabs.filter(t => !(t.workflowId === tab.workflowId && t.type === 'workflow'));
       }
 
-      // If no tabs left, create new empty tabs
-      if (newTabs.length === 0) {
-        const tempId = `new-${Date.now()}`;
-        const workflowTab: WorkflowTab = {
-          id: `${tempId}-workflow`,
-          name: '',
-          type: 'workflow',
-          workflowId: tempId,
-        };
-        const dashboardTab: WorkflowTab = {
-          id: `${tempId}-dashboard`,
-          name: 'Untitled Dashboard',
-          type: 'dashboard',
-          workflowId: tempId,
-        };
-        setActiveTabId(workflowTab.id);
-        return [workflowTab, dashboardTab];
-      }
+      // Ensure no duplicates
+      newTabs = ensureNoDuplicates(newTabs);
 
       // Switch to another tab if closing active tab
-      if (tabId === activeTabId) {
+      if (tabId === activeTabId && newTabs.length > 0) {
         const nextTab = newTabs.find(t => t.type === 'workflow') || newTabs[0];
         if (nextTab) {
           setActiveTabId(nextTab.id);
@@ -277,40 +222,6 @@ const WorkflowEditor: React.FC = () => {
     });
   };
 
-  // Create new workflow via + button
-  // Only creates tabs - workflow is created when user clicks on the workflow tab
-  const handleCreateNewWorkflow = () => {
-    const tempId = `new-${Date.now()}`;
-    
-    // Check if tabs with this workflowId already exist (prevent duplicates)
-    setOpenTabs(prev => {
-      const existingTab = prev.find(t => t.workflowId === tempId);
-      if (existingTab) {
-        // Tabs already exist, just activate the workflow tab
-        setActiveTabId(existingTab.id);
-        return prev;
-      }
-      
-      const workflowTab: WorkflowTab = {
-        id: `${tempId}-workflow`,
-        name: '', // Independent name - user can rename
-        type: 'workflow',
-        workflowId: tempId,
-      };
-      const dashboardTab: WorkflowTab = {
-        id: `${tempId}-dashboard`,
-        name: 'Untitled Dashboard', // Independent name
-        type: 'dashboard',
-        workflowId: tempId,
-      };
-      
-      // Only create tabs - do NOT create workflow yet
-      // Workflow will be created when user clicks on the workflow tab
-      // This prevents workflow name from being set automatically
-      setActiveTabId(workflowTab.id);
-      return [...prev, workflowTab, dashboardTab];
-    });
-  };
 
   // Handle template selection
   const handleTemplateSelect = async (template: ProjectTemplate, projectName: string) => {
@@ -382,16 +293,16 @@ const WorkflowEditor: React.FC = () => {
         style: { stroke: '#64748b' },
       }));
 
-      // Create tabs for the new workflow - check for duplicates first
+      // Create tabs for the new workflow - fixed names, prevent duplicates
       const workflowTab: WorkflowTab = {
         id: `${workflow.id}-workflow`,
-        name: projectName,
+        name: 'Workflow', // Fixed name
         type: 'workflow',
         workflowId: workflow.id,
       };
       const dashboardTab: WorkflowTab = {
         id: `${workflow.id}-dashboard`,
-        name: `${projectName} Dashboard`,
+        name: 'Dashboard', // Fixed name
         type: 'dashboard',
         workflowId: workflow.id,
       };
@@ -399,13 +310,14 @@ const WorkflowEditor: React.FC = () => {
       // Set active tab first to ensure Canvas is ready
       setActiveTabId(workflowTab.id);
       setOpenTabs(prev => {
-        // Check if tabs for this workflow already exist
+        // Check if tabs for this workflow already exist - prevent duplicates
         const existingWorkflowTab = prev.find(t => t.workflowId === workflow.id && t.type === 'workflow');
         if (existingWorkflowTab) {
           // Tabs already exist, just activate the workflow tab
           return prev;
         }
-        return [...prev, workflowTab, dashboardTab];
+        const newTabs = [...prev, workflowTab, dashboardTab];
+        return ensureNoDuplicates(newTabs);
       });
 
       // Update store AFTER tabs are set to ensure Canvas is ready
@@ -480,15 +392,7 @@ const WorkflowEditor: React.FC = () => {
           {openTabs.map((tab) => (
             <div
               key={tab.id}
-              onClick={() => {
-                if (editingTabId !== tab.id) {
-                  handleTabClick(tab.id);
-                }
-              }}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY, tabId: tab.id });
-              }}
+              onClick={() => handleTabClick(tab.id)}
               className={clsx(
                 'flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-t-lg transition-all cursor-pointer group min-w-[120px] max-w-[240px]',
                 activeTabId === tab.id
@@ -496,65 +400,20 @@ const WorkflowEditor: React.FC = () => {
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
               )}
             >
-              {editingTabId === tab.id ? (
-                <input
-                  type="text"
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onBlur={() => handleTabNameSubmit(tab.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleTabNameSubmit(tab.id);
-                    } else if (e.key === 'Escape') {
-                      handleTabNameCancel();
-                    }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex-1 px-1 py-0.5 text-xs bg-white border border-slate-900 rounded focus:outline-none min-w-0"
-                  autoFocus
-                />
-              ) : (
-                <span className="truncate flex-1">
-                  {tab.name || 'Untitled'}
-                </span>
+              <span className="truncate flex-1">
+                {tab.name}
+              </span>
+              {/* Only show close button if there are more than 2 tabs (workflow + dashboard) */}
+              {openTabs.length > 2 && (
+                <button
+                  onClick={(e) => handleTabClose(e, tab.id)}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               )}
-              <button
-                onClick={(e) => handleTabClose(e, tab.id)}
-                className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-opacity"
-              >
-                <X className="w-3 h-3" />
-              </button>
             </div>
           ))}
-
-          {/* Context Menu */}
-          {contextMenu && (
-            <div
-              ref={contextMenuRef}
-              className="fixed bg-white border border-slate-300/50 rounded-lg shadow-lg z-50 py-1 min-w-[120px]"
-              style={{ left: contextMenu.x, top: contextMenu.y }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => {
-                  handleTabNameEdit(contextMenu.tabId);
-                  setContextMenu(null);
-                }}
-                className="w-full text-left px-3 py-2 text-xs text-slate-900 hover:bg-slate-100/50 transition-colors uppercase tracking-tight"
-              >
-                Rename
-              </button>
-            </div>
-          )}
-
-          {/* Plus Button */}
-          <button
-            onClick={handleCreateNewWorkflow}
-            className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-100/50 transition-all text-slate-600 hover:text-slate-900 ml-1"
-            title="New Workflow"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Main Content Area */}
