@@ -110,28 +110,33 @@ const VerifyEmailPage: React.FC = () => {
       const response = await api.verifyEmail(trimmedToken);
       console.log('Verification response:', response);
       if (response.success) {
-        // Mark as verified and store token
+        // Mark as verified and store token FIRST
         setHasVerified(true);
         setStatus('success');
+        
+        // Store token immediately
         if (response.data?.token) {
           localStorage.setItem('token', response.data.token);
+          console.log('Token stored in localStorage');
         }
+        
         // Update user store to reflect verified status BEFORE redirecting
         try {
           const { useUserStore } = await import('../stores/userStore');
-          const { fetchUser } = useUserStore.getState();
+          const { fetchUser, fetchOrganization } = useUserStore.getState();
           
           // Immediately update the user store with verified status from the response
           // This ensures the store is updated before any redirects
           if (response.data?.user) {
             useUserStore.setState({ 
-              user: response.data.user,
+              user: { ...response.data.user, emailVerified: true },
               isAuthenticated: true 
             });
           }
           
           // Also fetch fresh user data to ensure everything is in sync
           await fetchUser();
+          await fetchOrganization();
           
           // Double-check the user is marked as verified
           const updatedUser = useUserStore.getState().user;
@@ -140,13 +145,29 @@ const VerifyEmailPage: React.FC = () => {
             // Retry once more
             await fetchUser();
           }
+          
+          // Verify token is still in localStorage before redirecting
+          const tokenCheck = localStorage.getItem('token');
+          if (!tokenCheck) {
+            console.error('Token was lost! Re-storing...');
+            if (response.data?.token) {
+              localStorage.setItem('token', response.data.token);
+            }
+          }
         } catch (fetchError) {
           console.warn('Could not fetch user after verification:', fetchError);
         }
+        
         // Show success message for 2 seconds, then redirect to plan selection
         // The user store should now be updated with emailVerified = true
         // Add verified=true parameter so SelectPlanPage knows we just verified
         setTimeout(() => {
+          // Double-check token one more time before navigating
+          const finalTokenCheck = localStorage.getItem('token');
+          if (!finalTokenCheck && response.data?.token) {
+            localStorage.setItem('token', response.data.token);
+          }
+          console.log('Navigating to select-plan, token exists:', !!localStorage.getItem('token'));
           navigate('/select-plan?verified=true');
         }, 2000);
       } else {

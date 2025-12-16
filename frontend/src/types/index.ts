@@ -8,10 +8,14 @@ import type { Node, Edge } from 'reactflow';
 // Node Types - All integrations
 export type NodeType = 
   // Triggers
-  | 'manual-trigger'
   | 'webhook-trigger'
   | 'schedule-trigger'
   | 'email-trigger'
+  | 'entity-signup-trigger'
+  | 'external-alert-trigger'
+  | 'periodic-data-pull-trigger'
+  | 'purchased-data-input'
+  | 'connected-data-input'
   // Core Actions
   | 'http-request'
   | 'set-variable'
@@ -78,10 +82,43 @@ export type NodeType =
   | 'intel-timeline-builder'
   | 'intel-geofencing'
   | 'intel-pattern-detection'
+  // Intelligence - New Nodes
+  | 'osint-enrichment'
+  | 'corporate-registry'
+  | 'sanctions-blacklist'
+  | 'social-footprint'
+  | 'domain-verification'
+  | 'risk-scoring'
+  | 'gdpr-compliance'
+  | 'historical-correlation'
   // Intelligence - Output
   | 'intel-map-visualization'
   | 'intel-report-generator'
-  | 'intel-data-export';
+  | 'intel-data-export'
+  // Decision Nodes
+  | 'risk-level-decision'
+  | 'approval-gate'
+  | 'escalation'
+  | 'branching'
+  // Action Nodes
+  | 'notify-team'
+  | 'request-documents'
+  | 'account-restriction'
+  | 'ticket-generation'
+  | 'log-outcome'
+  // Utility / Governance Nodes
+  | 'audit-logging'
+  | 'execution-control'
+  | 'human-override'
+  | 'rate-quota'
+  // App Nodes
+  | 'form'
+  | 'login-authentication'
+  | 'redirection'
+  | 'dashboard'
+  | 'website'
+  // Integration Nodes
+  | 'integration';
 
 export type NodeCategory = 'trigger' | 'action' | 'output' | 'intelligence';
 
@@ -156,14 +193,61 @@ export interface StoreDataConfig {
 // Web Scraper Config
 export interface WebScraperConfig {
   url: string;
-  selectors: Array<{
+  selectors?: Array<{
     name: string;
     selector: string;
+    xpath?: string; // Alternative to CSS selector
     attribute?: string; // 'text', 'href', 'src', or any attribute
     multiple?: boolean; // Get all matching elements
   }>;
   waitForSelector?: string;
   headers?: Record<string, string>;
+  // Advanced options
+  enableJS?: boolean; // JavaScript rendering
+  timeout?: number; // Request timeout in seconds
+  maxRetries?: number; // Max retry attempts
+  respectRobots?: boolean; // Respect robots.txt
+  rotateUserAgents?: boolean; // Rotate user agents
+  rateLimit?: {
+    requests: number;
+    window: number; // in seconds
+  };
+  // Dynamic content handling
+  handleInfiniteScroll?: boolean;
+  waitForNetworkIdle?: boolean;
+  waitTime?: number; // Wait time after page load (ms)
+  // Pagination
+  pagination?: {
+    enabled: boolean;
+    selector?: string; // Next page button/link selector
+    maxPages?: number;
+    pattern?: string; // URL pattern for pagination
+  };
+  // Data extraction
+  aiFieldDetection?: boolean; // Use AI to detect fields automatically
+  extractTables?: boolean; // Extract tabular data
+  extractNested?: boolean; // Extract nested/hierarchical data
+  // Data normalization
+  normalizeData?: boolean;
+  removeHTML?: boolean;
+  cleanText?: boolean;
+  unifyDates?: boolean;
+  unifyNumbers?: boolean;
+  detectDuplicates?: boolean;
+  // Output format
+  outputFormat?: 'json' | 'csv' | 'database';
+  // Error handling
+  resumeFromLastPoint?: boolean; // Resume from last successful point
+  logErrors?: boolean;
+  // Security & compliance
+  gdprCompliance?: boolean; // Handle GDPR-sensitive fields
+  customCookies?: Record<string, string>;
+  proxy?: {
+    enabled: boolean;
+    url?: string;
+  };
+  // Advanced prompt/instructions
+  advancedPrompt?: string; // Custom instructions for AI-powered scraping
 }
 
 // Database Config

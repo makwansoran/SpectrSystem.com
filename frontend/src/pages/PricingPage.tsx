@@ -39,22 +39,22 @@ const PricingPage: React.FC = () => {
   }, [billingPeriod]);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-white text-gray-900">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-white/10">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            <Link to="/" className="flex items-center gap-3 text-white/60 hover:text-white transition-colors">
+            <Link to="/" className="flex items-center gap-3 text-gray-600 hover:text-gray-900 transition-colors">
               <ArrowLeft className="w-5 h-5" />
               <span className="text-sm">Back to Home</span>
             </Link>
             <Link to="/" className="flex items-center text-2xl font-semibold tracking-wide" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '-0.02em' }}>
-              <img src="/EyelogoWhite.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
-              <span>SPECTR SYSTEM</span>
+              <img src="/EyelogoBlack.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
+              <span className="text-gray-900">SPECTR SYSTEM</span>
             </Link>
             <Link
               to="/signup"
-              className="px-6 py-2.5 bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors"
+              className="px-6 py-2.5 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
             >
               Get Started
             </Link>
@@ -70,21 +70,21 @@ const PricingPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="text-sm tracking-widest text-white/60 mb-6">PRICING</div>
-            <h1 className="text-5xl lg:text-7xl font-light tracking-tight mb-8">
+            <div className="text-sm tracking-widest text-gray-500 mb-6">PRICING</div>
+            <h1 className="text-5xl lg:text-7xl font-light tracking-tight mb-8 text-gray-900">
               Simple, transparent pricing
             </h1>
-            <p className="text-xl text-white/60 max-w-2xl mx-auto mb-12">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-12">
               Choose the plan that fits your organization. All plans include core features 
               with the flexibility to scale as you grow.
             </p>
 
             {/* Billing Toggle */}
-            <div className="relative inline-flex items-center gap-8 p-1">
+            <div className="relative inline-flex items-center gap-8 p-1 bg-gray-100 rounded-lg">
               {/* Animated background box */}
               {boxWidth > 0 && (
                 <motion.div
-                  className="absolute top-0 bottom-0 bg-white rounded-lg"
+                  className="absolute top-0 bottom-0 bg-gray-900 rounded-lg"
                   initial={false}
                   animate={{
                     left: `${boxLeft}px`,
@@ -102,27 +102,27 @@ const PricingPage: React.FC = () => {
               <button
                 ref={monthlyRef}
                 onClick={() => setBillingPeriod('monthly')}
-                className={clsx(
-                  'relative px-6 py-2.5 text-sm font-medium transition-colors z-10',
-                  billingPeriod === 'monthly' ? 'text-black' : 'text-white/60 hover:text-white'
-                )}
+                  className={clsx(
+                    'relative px-6 py-2.5 text-sm font-medium transition-colors z-10',
+                    billingPeriod === 'monthly' ? 'text-white' : 'text-gray-900'
+                  )}
               >
                 Monthly
               </button>
               <button
                 ref={annuallyRef}
                 onClick={() => setBillingPeriod('yearly')}
-                className={clsx(
-                  'relative px-6 py-2.5 text-sm font-medium transition-colors z-10',
-                  billingPeriod === 'yearly' ? 'text-black' : 'text-white/60 hover:text-white'
-                )}
+                  className={clsx(
+                    'relative px-6 py-2.5 text-sm font-medium transition-colors z-10',
+                    billingPeriod === 'yearly' ? 'text-white' : 'text-gray-900'
+                  )}
               >
                 Annually
-                <span className={clsx(
+                <span                   className={clsx(
                   'ml-2 px-2 py-0.5 text-xs rounded transition-colors',
                   billingPeriod === 'yearly' 
-                    ? 'bg-black/20 text-black' 
-                    : 'bg-white/20 text-white'
+                    ? 'bg-white/20 text-white' 
+                    : 'bg-gray-200 text-gray-700'
                 )}>
                   Save 20%
                 </span>
@@ -146,22 +146,22 @@ const PricingPage: React.FC = () => {
                 className={clsx(
                   'relative p-8 border transition-all',
                   tier.featured
-                    ? 'border-white/30 bg-white/5'
-                    : 'border-white/10 hover:border-white/20'
+                    ? 'border-gray-300 bg-gray-50'
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                 )}
               >
                 {/* Header */}
                 <div className="mb-8">
-                  <div className="text-xs tracking-widest text-white/40 mb-4">{tier.name}</div>
+                  <div className="text-xs tracking-widest text-gray-500 mb-4">{tier.name}</div>
                   
                   <div className="flex items-baseline gap-2 mb-3">
-                    <span className="text-5xl font-light">
+                    <span className="text-5xl font-light text-gray-900">
                       ${billingPeriod === 'yearly' ? Math.floor(tier.price * 0.8) : tier.price}
                     </span>
-                    {tier.price > 0 && <span className="text-white/40">/month</span>}
+                    {tier.price > 0 && <span className="text-gray-500">/month</span>}
                   </div>
                   
-                  <p className="text-sm text-white/60">{tier.description}</p>
+                  <p className="text-sm text-gray-600">{tier.description}</p>
                 </div>
 
                 {/* CTA */}
@@ -170,8 +170,8 @@ const PricingPage: React.FC = () => {
                   className={clsx(
                     'block w-full py-4 text-center text-sm font-medium transition-all mb-8',
                     tier.featured
-                      ? 'bg-white text-black hover:bg-white/90'
-                      : 'border border-white/20 text-white hover:border-white/40'
+                      ? 'bg-gray-900 text-white hover:bg-gray-800'
+                      : 'border border-gray-300 text-gray-900 hover:border-gray-400 hover:bg-gray-50'
                   )}
                 >
                   {tier.cta}
@@ -179,11 +179,11 @@ const PricingPage: React.FC = () => {
 
                 {/* Features */}
                 <div className="space-y-4">
-                  <div className="text-xs tracking-widest text-white/30 mb-4">INCLUDES</div>
+                  <div className="text-xs tracking-widest text-gray-500 mb-4">INCLUDES</div>
                   {tier.features.map((feature) => (
                     <div key={feature} className="flex items-start gap-3">
-                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-white/40" />
-                      <span className="text-sm text-white/70">{feature}</span>
+                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                      <span className="text-sm text-gray-700">{feature}</span>
                     </div>
                   ))}
                 </div>
@@ -198,17 +198,17 @@ const PricingPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="relative p-8 border border-white/10 hover:border-white/20 transition-all"
+              className="relative p-8 border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
             >
               <div className="grid lg:grid-cols-2 gap-12 items-center">
                 {/* Left: Header and Description */}
                 <div>
-                  <div className="text-xs tracking-widest text-white/40 mb-4">{tier.name}</div>
-                  <p className="text-lg text-white/60 mb-8">{tier.description}</p>
+                  <div className="text-xs tracking-widest text-gray-500 mb-4">{tier.name}</div>
+                  <p className="text-lg text-gray-600 mb-8">{tier.description}</p>
                   
                   <Link
                     to={tier.name === 'ENTERPRISE' ? '/contact-sales' : '/signup'}
-                    className="inline-block px-8 py-4 bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors"
+                    className="inline-block px-8 py-4 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
                   >
                     {tier.cta}
                   </Link>
@@ -216,12 +216,12 @@ const PricingPage: React.FC = () => {
 
                 {/* Right: Features */}
                 <div className="space-y-4">
-                  <div className="text-xs tracking-widest text-white/30 mb-4">INCLUDES</div>
+                  <div className="text-xs tracking-widest text-gray-500 mb-4">INCLUDES</div>
                   <div className="grid grid-cols-2 gap-4">
                     {tier.features.map((feature) => (
                       <div key={feature} className="flex items-start gap-3">
-                        <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-white/40" />
-                        <span className="text-sm text-white/70">{feature}</span>
+                        <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                        <span className="text-sm text-gray-700">{feature}</span>
                       </div>
                     ))}
                   </div>
@@ -233,32 +233,32 @@ const PricingPage: React.FC = () => {
       </section>
 
       {/* Enterprise Section */}
-      <section className="relative py-24 px-6 lg:px-8 border-t border-white/10">
+      <section className="relative py-24 px-6 lg:px-8 border-t border-gray-200">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="text-sm tracking-widest text-white/60 mb-4">ENTERPRISE</div>
-              <h2 className="text-4xl lg:text-5xl font-light tracking-tight mb-6">
+              <div className="text-sm tracking-widest text-gray-500 mb-4">ENTERPRISE</div>
+              <h2 className="text-4xl lg:text-5xl font-light tracking-tight mb-6 text-gray-900">
                 Built for scale
               </h2>
-              <p className="text-lg text-white/60 mb-8">
+              <p className="text-lg text-gray-600 mb-8">
                 For organizations with complex requirements. Custom pricing, 
                 dedicated support, and enterprise-grade features.
               </p>
               <div className="space-y-6 mb-10">
                 {enterpriseFeatures.map((feature) => (
                   <div key={feature.title} className="flex items-start gap-3">
-                    <div className="w-1.5 h-1.5 bg-white mt-2 flex-shrink-0" />
+                    <div className="w-1.5 h-1.5 bg-gray-900 mt-2 flex-shrink-0" />
                     <div>
-                      <div className="text-sm font-medium mb-1">{feature.title}</div>
-                      <div className="text-xs text-white/40">{feature.description}</div>
+                      <div className="text-sm font-medium mb-1 text-gray-900">{feature.title}</div>
+                      <div className="text-xs text-gray-500">{feature.description}</div>
                     </div>
                   </div>
                 ))}
               </div>
               <Link
                 to="/contact-sales"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
               >
                 Contact Sales
                 <ArrowRight className="w-4 h-4" />
@@ -273,9 +273,9 @@ const PricingPage: React.FC = () => {
                   { value: 'SOC 2', label: 'Certified' },
                   { value: '<1hr', label: 'Response' },
                 ].map((stat) => (
-                  <div key={stat.label} className="p-6 border border-white/10">
-                    <div className="text-3xl font-light mb-2">{stat.value}</div>
-                    <div className="text-xs text-white/40 tracking-wide">{stat.label}</div>
+                  <div key={stat.label} className="p-6 border border-gray-200">
+                    <div className="text-3xl font-light mb-2 text-gray-900">{stat.value}</div>
+                    <div className="text-xs text-gray-500 tracking-wide">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -285,13 +285,13 @@ const PricingPage: React.FC = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="relative py-24 px-6 lg:px-8 border-t border-white/10">
+      <section className="relative py-24 px-6 lg:px-8 border-t border-gray-200">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-light tracking-tight mb-4">
+            <h2 className="text-3xl font-light tracking-tight mb-4 text-gray-900">
               Frequently Asked Questions
             </h2>
-            <p className="text-white/60">
+            <p className="text-gray-600">
               Everything you need to know about our pricing
             </p>
           </div>
@@ -305,25 +305,25 @@ const PricingPage: React.FC = () => {
       </section>
 
       {/* CTA */}
-      <section className="relative py-24 px-6 lg:px-8 border-t border-white/10">
+      <section className="relative py-24 px-6 lg:px-8 border-t border-gray-200">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl font-light tracking-tight mb-6">
+          <h2 className="text-4xl font-light tracking-tight mb-6 text-gray-900">
             Ready to get started?
           </h2>
-          <p className="text-lg text-white/60 mb-10">
+          <p className="text-lg text-gray-600 mb-10">
             Start with our free plan and upgrade when you need more power.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/signup"
-              className="px-8 py-4 bg-white text-black font-medium hover:bg-white/90 transition-colors inline-flex items-center gap-2"
+              className="px-8 py-4 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors inline-flex items-center gap-2"
             >
               Start Free
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               to="/contact-sales"
-              className="px-8 py-4 border border-white/20 text-white hover:border-white/40 transition-colors"
+              className="px-8 py-4 border border-gray-300 text-gray-900 hover:border-gray-400 hover:bg-gray-50 transition-colors"
             >
               Talk to Sales
             </Link>
@@ -332,15 +332,15 @@ const PricingPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="relative py-8 px-6 lg:px-8 border-t border-white/10">
+      <footer className="relative py-8 px-6 lg:px-8 border-t border-gray-200">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-gray-500">
             © {new Date().getFullYear()} SPECTR SYSTEM. All rights reserved.
           </p>
-          <div className="flex items-center gap-6 text-xs text-white/40">
-            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
-            <a href="#" className="hover:text-white transition-colors">Security</a>
+          <div className="flex items-center gap-6 text-xs text-gray-500">
+            <Link to="/privacy" className="hover:text-gray-900 transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-gray-900 transition-colors">Terms</Link>
+            <a href="#" className="hover:text-gray-900 transition-colors">Security</a>
           </div>
         </div>
       </footer>
@@ -353,19 +353,19 @@ const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, ans
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border border-white/10">
+    <div className="border border-gray-200">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-6 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 transition-colors"
       >
-        <span className="font-medium pr-4">{question}</span>
+        <span className="font-medium pr-4 text-gray-900">{question}</span>
         <span className={clsx(
-          'text-xl text-white/40 transition-transform',
+          'text-xl text-gray-500 transition-transform',
           isOpen && 'rotate-45'
         )}>+</span>
       </button>
       {isOpen && (
-        <div className="px-6 pb-6 text-white/60 text-sm leading-relaxed">
+        <div className="px-6 pb-6 text-gray-600 text-sm leading-relaxed">
           {answer}
         </div>
       )}

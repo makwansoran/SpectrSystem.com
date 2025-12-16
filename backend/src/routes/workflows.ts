@@ -21,12 +21,15 @@ const router = Router();
  * GET /api/workflows
  * List all workflows
  */
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const workflows = getAllWorkflows();
+    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const workflows = dbType === 'postgresql' 
+      ? await getAllWorkflows() 
+      : getAllWorkflows();
     res.json({
       success: true,
-      data: workflows
+      data: workflows || []
     });
   } catch (error) {
     console.error('Error fetching workflows:', error);
@@ -41,10 +44,13 @@ router.get('/', (req: Request, res: Response) => {
  * GET /api/workflows/:id
  * Get a single workflow by ID
  */
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workflow = getWorkflowById(id);
+    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const workflow = dbType === 'postgresql' 
+      ? await getWorkflowById(id) 
+      : getWorkflowById(id);
 
     if (!workflow) {
       return res.status(404).json({
@@ -70,7 +76,7 @@ router.get('/:id', (req: Request, res: Response) => {
  * POST /api/workflows
  * Create a new workflow
  */
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const data: CreateWorkflowRequest = req.body;
 
@@ -81,7 +87,10 @@ router.post('/', (req: Request, res: Response) => {
       });
     }
 
-    const workflow = createWorkflow(data);
+    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const workflow = dbType === 'postgresql' 
+      ? await createWorkflow(data) 
+      : createWorkflow(data);
 
     res.status(201).json({
       success: true,
@@ -101,12 +110,15 @@ router.post('/', (req: Request, res: Response) => {
  * PUT /api/workflows/:id
  * Update an existing workflow
  */
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const data: UpdateWorkflowRequest = req.body;
 
-    const workflow = updateWorkflow(id, data);
+    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const workflow = dbType === 'postgresql' 
+      ? await updateWorkflow(id, data) 
+      : updateWorkflow(id, data);
 
     if (!workflow) {
       return res.status(404).json({
@@ -133,10 +145,13 @@ router.put('/:id', (req: Request, res: Response) => {
  * DELETE /api/workflows/:id
  * Delete a workflow
  */
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deleted = deleteWorkflow(id);
+    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const deleted = dbType === 'postgresql' 
+      ? await deleteWorkflow(id) 
+      : deleteWorkflow(id);
 
     if (!deleted) {
       return res.status(404).json({
@@ -165,7 +180,10 @@ router.delete('/:id', (req: Request, res: Response) => {
 router.post('/:id/execute', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const workflow = getWorkflowById(id);
+    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const workflow = dbType === 'postgresql' 
+      ? await getWorkflowById(id) 
+      : getWorkflowById(id);
 
     if (!workflow) {
       return res.status(404).json({
@@ -194,13 +212,16 @@ router.post('/:id/execute', async (req: Request, res: Response) => {
  * GET /api/workflows/:id/executions
  * Get execution history for a workflow
  */
-router.get('/:id/executions', (req: Request, res: Response) => {
+router.get('/:id/executions', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { limit, offset } = req.query;
 
     // Verify workflow exists
-    const workflow = getWorkflowById(id);
+    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const workflow = dbType === 'postgresql' 
+      ? await getWorkflowById(id) 
+      : getWorkflowById(id);
     if (!workflow) {
       return res.status(404).json({
         success: false,
@@ -208,15 +229,21 @@ router.get('/:id/executions', (req: Request, res: Response) => {
       });
     }
 
-    const executions = getExecutions({
-      workflowId: id,
-      limit: limit ? parseInt(limit as string) : 50,
-      offset: offset ? parseInt(offset as string) : 0
-    });
+    const executions = dbType === 'postgresql' 
+      ? await getExecutions({
+          workflowId: id,
+          limit: limit ? parseInt(limit as string) : 50,
+          offset: offset ? parseInt(offset as string) : 0
+        })
+      : getExecutions({
+          workflowId: id,
+          limit: limit ? parseInt(limit as string) : 50,
+          offset: offset ? parseInt(offset as string) : 0
+        });
 
     res.json({
       success: true,
-      data: executions
+      data: executions || []
     });
   } catch (error) {
     console.error('Error fetching executions:', error);

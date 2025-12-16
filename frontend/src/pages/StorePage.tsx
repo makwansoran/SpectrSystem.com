@@ -44,7 +44,14 @@ interface DataPack {
 
 const StorePage: React.FC = () => {
   const navigate = useNavigate();
-  const { organization } = useUserStore();
+  const { organization, isAuthenticated } = useUserStore();
+
+  // Redirect to signup if not authenticated
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/signup');
+    }
+  }, [isAuthenticated, navigate]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);

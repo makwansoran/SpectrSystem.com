@@ -143,3 +143,98 @@ export const CodeNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
 });
 
 CodeNode.displayName = 'CodeNode';
+
+// Decision Nodes
+export const RiskLevelDecisionNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+RiskLevelDecisionNode.displayName = 'RiskLevelDecisionNode';
+
+export const ApprovalGateNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+ApprovalGateNode.displayName = 'ApprovalGateNode';
+
+export const EscalationNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+EscalationNode.displayName = 'EscalationNode';
+
+export const BranchingNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+BranchingNode.displayName = 'BranchingNode';
+
+// Action Nodes
+export const NotifyTeamNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+NotifyTeamNode.displayName = 'NotifyTeamNode';
+
+export const RequestDocumentsNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+RequestDocumentsNode.displayName = 'RequestDocumentsNode';
+
+export const AccountRestrictionNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+AccountRestrictionNode.displayName = 'AccountRestrictionNode';
+
+export const TicketGenerationNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+TicketGenerationNode.displayName = 'TicketGenerationNode';
+
+export const LogOutcomeNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+LogOutcomeNode.displayName = 'LogOutcomeNode';
+
+// Utility / Governance Nodes
+export const AuditLoggingNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+AuditLoggingNode.displayName = 'AuditLoggingNode';
+
+export const ExecutionControlNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+ExecutionControlNode.displayName = 'ExecutionControlNode';
+
+export const HumanOverrideNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+HumanOverrideNode.displayName = 'HumanOverrideNode';
+
+export const RateQuotaNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+RateQuotaNode.displayName = 'RateQuotaNode';
+
+// App Nodes
+export const FormNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+FormNode.displayName = 'FormNode';
+
+export const LoginAuthenticationNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+LoginAuthenticationNode.displayName = 'LoginAuthenticationNode';
+
+export const RedirectionNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+RedirectionNode.displayName = 'RedirectionNode';
+
+export const DashboardNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+DashboardNode.displayName = 'DashboardNode';
+
+// Integration Nodes
+export const IntegrationNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+IntegrationNode.displayName = 'IntegrationNode';

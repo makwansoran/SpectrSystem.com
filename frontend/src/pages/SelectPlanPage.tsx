@@ -24,11 +24,27 @@ const SelectPlanPage: React.FC = () => {
     // Check if user is authenticated
     const checkAuth = async () => {
       try {
+        // If we just verified, wait a moment for token to be set
+        if (justVerified) {
+          await new Promise(resolve => setTimeout(resolve, 300)); // Wait 300ms
+        }
+        
         const token = localStorage.getItem('token');
         if (!token) {
-          // Not authenticated, redirect to sign in
-          navigate('/signin');
-          return;
+          // If we just verified but no token, wait a bit more
+          if (justVerified) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const retryToken = localStorage.getItem('token');
+            if (!retryToken) {
+              console.error('No token found after verification, redirecting to signin');
+              navigate('/signin');
+              return;
+            }
+          } else {
+            // Not authenticated, redirect to sign in
+            navigate('/signin');
+            return;
+          }
         }
 
         // Fetch user and organization
@@ -40,6 +56,7 @@ const SelectPlanPage: React.FC = () => {
         if (justVerified) {
           await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
           await fetchUser(); // Fetch again to ensure we have the latest data
+          await fetchOrganization();
         }
         
         const currentUser = useUserStore.getState().user;
@@ -75,13 +92,19 @@ const SelectPlanPage: React.FC = () => {
         setIsChecking(false);
       } catch (error) {
         console.error('Error checking auth:', error);
-        // If error, still show plan selection
-        setIsChecking(false);
+        // If we just verified and there's an error, still show the page
+        if (justVerified) {
+          console.warn('Error after verification, but continuing to show plan selection');
+          setIsChecking(false);
+        } else {
+          // If error and not just verified, redirect to signin
+          navigate('/signin');
+        }
       }
     };
 
     checkAuth();
-  }, [fetchOrganization, navigate]);
+  }, [fetchOrganization, navigate, justVerified]);
 
   const handleSelectPlan = async (plan: string) => {
     if (isLoading) return;

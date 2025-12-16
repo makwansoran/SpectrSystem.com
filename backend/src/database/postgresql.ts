@@ -22,14 +22,14 @@ const pool = new Pool({
   database: process.env.DB_NAME || 'spectrsystems',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  ssl: process.env.DB_SSL !== 'false' ? { rejectUnauthorized: false } : false, // RDS requires SSL
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // Increased timeout
 });
 
 // Helper to convert SQLite-style queries to PostgreSQL
-function convertQuery(sql: string, params: any[] = []): { sql: string; params: any[] } {
+export function convertQuery(sql: string, params: any[] = []): { sql: string; params: any[] } {
   let pgSql = sql;
   const pgParams: any[] = [];
   let paramIndex = 1;
@@ -526,6 +526,150 @@ export async function deleteDataStoreValue(key: string): Promise<boolean> {
   const { sql, params } = convertQuery('DELETE FROM data_store WHERE key = ?', [key]);
   const result = await pool.query(sql, params);
   return result.rowCount > 0;
+}
+
+// User Management Operations
+export async function getUserByEmail(email: string): Promise<any | null> {
+  const { sql, params } = convertQuery('SELECT * FROM users WHERE email = ?', [email]);
+  const result = await pool.query(sql, params);
+  return result.rows[0] || null;
+}
+
+export async function getUserById(id: string): Promise<any | null> {
+  const { sql, params } = convertQuery('SELECT * FROM users WHERE id = ?', [id]);
+  const result = await pool.query(sql, params);
+  return result.rows[0] || null;
+}
+
+export async function createUser(data: {
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+  emailVerified?: boolean;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const { sql, params } = convertQuery(`
+    INSERT INTO users (id, email, name, password_hash, email_verified, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `, [data.id, data.email, data.name, data.passwordHash, data.emailVerified ? 1 : 0, now, now]);
+  await pool.query(sql, params);
+}
+
+export async function createOrganization(data: {
+  id: string;
+  name: string;
+  plan?: string;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const { sql, params } = convertQuery(`
+    INSERT INTO organizations (id, name, plan, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?)
+  `, [data.id, data.name, data.plan || 'free', now, now]);
+  await pool.query(sql, params);
+}
+
+export async function linkUserToOrganization(data: {
+  userId: string;
+  organizationId: string;
+  role?: string;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const { sql, params } = convertQuery(`
+    INSERT INTO user_organizations (user_id, organization_id, role, created_at)
+    VALUES (?, ?, ?, ?)
+  `, [data.userId, data.organizationId, data.role || 'admin', now]);
+  await pool.query(sql, params);
+}
+
+export async function createEmailVerificationToken(data: {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: string;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const { sql, params } = convertQuery(`
+    INSERT INTO email_verification_tokens (id, user_id, token, expires_at, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `, [data.id, data.userId, data.token, data.expiresAt, now]);
+  await pool.query(sql, params);
+}
+
+export async function getEmailVerificationToken(token: string): Promise<any | null> {
+  const { sql, params } = convertQuery(`
+    SELECT evt.*, u.id as user_id, u.email, u.name, u.email_verified
+    FROM email_verification_tokens evt
+    JOIN users u ON evt.user_id = u.id
+    WHERE evt.token = ? AND evt.used = 0 AND evt.expires_at > ?
+  `, [token, new Date().toISOString()]);
+  const result = await pool.query(sql, params);
+  return result.rows[0] || null;
+}
+
+export async function markEmailVerificationTokenAsUsed(tokenId: string): Promise<void> {
+  const { sql, params } = convertQuery('UPDATE email_verification_tokens SET used = 1 WHERE id = ?', [tokenId]);
+  await pool.query(sql, params);
+}
+
+export async function verifyUserEmail(userId: string): Promise<void> {
+  const { sql, params } = convertQuery('UPDATE users SET email_verified = 1 WHERE id = ?', [userId]);
+  await pool.query(sql, params);
+}
+
+export async function getUserOrganization(userId: string): Promise<any | null> {
+  const { sql, params } = convertQuery(`
+    SELECT o.*, uo.role
+    FROM organizations o
+    JOIN user_organizations uo ON o.id = uo.organization_id
+    WHERE uo.user_id = ?
+  `, [userId]);
+  const result = await pool.query(sql, params);
+  return result.rows[0] || null;
+}
+
+export async function updateOrganizationPlan(organizationId: string, plan: string): Promise<void> {
+  const now = new Date().toISOString();
+  const { sql, params } = convertQuery(
+    'UPDATE organizations SET plan = ?, updated_at = ? WHERE id = ?',
+    [plan, now, organizationId]
+  );
+  await pool.query(sql, params);
+}
+
+export async function createPasswordResetToken(data: {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: string;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const { sql, params } = convertQuery(`
+    INSERT INTO password_reset_tokens (id, user_id, token, expires_at, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `, [data.id, data.userId, data.token, data.expiresAt, now]);
+  await pool.query(sql, params);
+}
+
+export async function getPasswordResetToken(token: string): Promise<any | null> {
+  const { sql, params } = convertQuery(`
+    SELECT prt.*, u.email, u.name
+    FROM password_reset_tokens prt
+    JOIN users u ON prt.user_id = u.id
+    WHERE prt.token = ? AND prt.used = 0 AND prt.expires_at > ?
+  `, [token, new Date().toISOString()]);
+  const result = await pool.query(sql, params);
+  return result.rows[0] || null;
+}
+
+export async function markPasswordResetTokenAsUsed(tokenId: string): Promise<void> {
+  const { sql, params } = convertQuery('UPDATE password_reset_tokens SET used = 1 WHERE id = ?', [tokenId]);
+  await pool.query(sql, params);
+}
+
+export async function updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+  const { sql, params } = convertQuery('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, userId]);
+  await pool.query(sql, params);
 }
 
 // Export pool for direct access if needed

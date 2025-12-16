@@ -35,6 +35,9 @@ import {
   executeManualTrigger,
   executeWebhookTrigger,
   executeScheduleTrigger,
+  executeEntitySignupTrigger,
+  executeExternalAlertTrigger,
+  executePeriodicDataPullTrigger,
   executeHttpRequest,
   executeSetVariable,
   executeCondition,
@@ -64,6 +67,32 @@ import {
   executeMapVisualization,
   executeReportGenerator,
   executeDataExport,
+  executeOSINTEnrichment,
+  executeCorporateRegistry,
+  executeSanctionsBlacklist,
+  executeSocialFootprint,
+  executeDomainVerification,
+  executeRiskScoring,
+  executeGDPRCompliance,
+  executeHistoricalCorrelation,
+  executeRiskLevelDecision,
+  executeApprovalGate,
+  executeEscalation,
+  executeBranching,
+  executeNotifyTeam,
+  executeRequestDocuments,
+  executeAccountRestriction,
+  executeTicketGeneration,
+  executeLogOutcome,
+  executeAuditLogging,
+  executeExecutionControl,
+  executeHumanOverride,
+  executeRateQuota,
+  executeForm,
+  executeLoginAuthentication,
+  executeRedirection,
+  executeDashboard,
+  executeIntegration,
 } from './nodes';
 
 import {
@@ -158,7 +187,10 @@ function findStartNode(nodes: WorkflowNode[]): WorkflowNode | undefined {
   return nodes.find(node =>
     node.type === 'manual-trigger' ||
     node.type === 'webhook-trigger' ||
-    node.type === 'schedule-trigger'
+    node.type === 'schedule-trigger' ||
+    node.type === 'entity-signup-trigger' ||
+    node.type === 'external-alert-trigger' ||
+    node.type === 'periodic-data-pull-trigger'
   );
 }
 
@@ -223,6 +255,21 @@ async function executeNode(
 
       case 'schedule-trigger':
         output = await executeScheduleTrigger({}, context);
+        break;
+
+      case 'entity-signup-trigger':
+        const entitySignupConfig = node.data.config as import('./nodes/triggers/entity-signup-trigger').EntitySignupTriggerConfig;
+        output = await executeEntitySignupTrigger(entitySignupConfig || {}, context);
+        break;
+
+      case 'external-alert-trigger':
+        const externalAlertConfig = node.data.config as import('./nodes/triggers/external-alert-trigger').ExternalAlertTriggerConfig;
+        output = await executeExternalAlertTrigger(externalAlertConfig || {}, context);
+        break;
+
+      case 'periodic-data-pull-trigger':
+        const periodicPullConfig = node.data.config as import('./nodes/triggers/periodic-data-pull-trigger').PeriodicDataPullTriggerConfig;
+        output = await executePeriodicDataPullTrigger(periodicPullConfig || {}, context);
         break;
 
       case 'http-request':
@@ -400,6 +447,142 @@ async function executeNode(
 
       case 'intel-data-export':
         output = await executeDataExport(node.data.config as any, context);
+        break;
+
+      // New Intelligence Nodes
+      case 'osint-enrichment':
+        const osintEnrichmentConfig = node.data.config as import('./nodes/intelligence/index').OSINTEnrichmentConfig;
+        output = await executeOSINTEnrichment(osintEnrichmentConfig || {}, context);
+        break;
+
+      case 'corporate-registry':
+        const corporateRegistryConfig = node.data.config as import('./nodes/intelligence/index').CorporateRegistryConfig;
+        output = await executeCorporateRegistry(corporateRegistryConfig || {}, context);
+        break;
+
+      case 'sanctions-blacklist':
+        const sanctionsBlacklistConfig = node.data.config as import('./nodes/intelligence/index').SanctionsBlacklistConfig;
+        output = await executeSanctionsBlacklist(sanctionsBlacklistConfig || {}, context);
+        break;
+
+      case 'social-footprint':
+        const socialFootprintConfig = node.data.config as import('./nodes/intelligence/index').SocialFootprintConfig;
+        output = await executeSocialFootprint(socialFootprintConfig || {}, context);
+        break;
+
+      case 'domain-verification':
+        const domainVerificationConfig = node.data.config as import('./nodes/intelligence/index').DomainVerificationConfig;
+        output = await executeDomainVerification(domainVerificationConfig || {}, context);
+        break;
+
+      case 'risk-scoring':
+        const riskScoringConfig = node.data.config as import('./nodes/intelligence/index').RiskScoringConfig;
+        output = await executeRiskScoring(riskScoringConfig || {}, context);
+        break;
+
+      case 'gdpr-compliance':
+        const gdprComplianceConfig = node.data.config as import('./nodes/intelligence/index').GDPRComplianceConfig;
+        output = await executeGDPRCompliance(gdprComplianceConfig || {}, context);
+        break;
+
+      case 'historical-correlation':
+        const historicalCorrelationConfig = node.data.config as import('./nodes/intelligence/index').HistoricalCorrelationConfig;
+        output = await executeHistoricalCorrelation(historicalCorrelationConfig || {}, context);
+        break;
+
+      // Decision Nodes
+      case 'risk-level-decision':
+        const riskLevelDecisionConfig = node.data.config as import('./nodes/decision-action').RiskLevelDecisionConfig;
+        output = await executeRiskLevelDecision(riskLevelDecisionConfig || {}, context);
+        break;
+
+      case 'approval-gate':
+        const approvalGateConfig = node.data.config as import('./nodes/decision-action').ApprovalGateConfig;
+        output = await executeApprovalGate(approvalGateConfig || {}, context);
+        break;
+
+      case 'escalation':
+        const escalationConfig = node.data.config as import('./nodes/decision-action').EscalationConfig;
+        output = await executeEscalation(escalationConfig || {}, context);
+        break;
+
+      case 'branching':
+        const branchingConfig = node.data.config as import('./nodes/decision-action').BranchingConfig;
+        output = await executeBranching(branchingConfig || {}, context);
+        break;
+
+      // Action Nodes
+      case 'notify-team':
+        const notifyTeamConfig = node.data.config as import('./nodes/decision-action').NotifyTeamConfig;
+        output = await executeNotifyTeam(notifyTeamConfig || {}, context);
+        break;
+
+      case 'request-documents':
+        const requestDocumentsConfig = node.data.config as import('./nodes/decision-action').RequestDocumentsConfig;
+        output = await executeRequestDocuments(requestDocumentsConfig || {}, context);
+        break;
+
+      case 'account-restriction':
+        const accountRestrictionConfig = node.data.config as import('./nodes/decision-action').AccountRestrictionConfig;
+        output = await executeAccountRestriction(accountRestrictionConfig || {}, context);
+        break;
+
+      case 'ticket-generation':
+        const ticketGenerationConfig = node.data.config as import('./nodes/decision-action').TicketGenerationConfig;
+        output = await executeTicketGeneration(ticketGenerationConfig || {}, context);
+        break;
+
+      case 'log-outcome':
+        const logOutcomeConfig = node.data.config as import('./nodes/decision-action').LogOutcomeConfig;
+        output = await executeLogOutcome(logOutcomeConfig || {}, context);
+        break;
+
+      // Utility / Governance Nodes
+      case 'audit-logging':
+        const auditLoggingConfig = node.data.config as import('./nodes/decision-action').AuditLoggingConfig;
+        output = await executeAuditLogging(auditLoggingConfig || {}, context);
+        break;
+
+      case 'execution-control':
+        const executionControlConfig = node.data.config as import('./nodes/decision-action').ExecutionControlConfig;
+        output = await executeExecutionControl(executionControlConfig || {}, context);
+        break;
+
+      case 'human-override':
+        const humanOverrideConfig = node.data.config as import('./nodes/decision-action').HumanOverrideConfig;
+        output = await executeHumanOverride(humanOverrideConfig || {}, context);
+        break;
+
+      case 'rate-quota':
+        const rateQuotaConfig = node.data.config as import('./nodes/decision-action').RateQuotaConfig;
+        output = await executeRateQuota(rateQuotaConfig || {}, context);
+        break;
+
+      // App Nodes
+      case 'form':
+        const formConfig = node.data.config as import('./nodes/decision-action').FormConfig;
+        output = await executeForm(formConfig || {}, context);
+        break;
+
+      case 'login-authentication':
+        const loginAuthenticationConfig = node.data.config as import('./nodes/decision-action').LoginAuthenticationConfig;
+        output = await executeLoginAuthentication(loginAuthenticationConfig || {}, context);
+        break;
+
+      case 'redirection':
+        const redirectionConfig = node.data.config as import('./nodes/decision-action').RedirectionConfig;
+        output = await executeRedirection(redirectionConfig || {}, context);
+        break;
+
+      case 'dashboard':
+        const dashboardConfig = node.data.config as import('./nodes/decision-action').DashboardConfig;
+        output = await executeDashboard(dashboardConfig || {}, context);
+        break;
+
+      // Integration Nodes
+      case 'integration':
+        const integrationConfig = node.data.config as import('./nodes/decision-action').IntegrationConfig;
+        output = await executeIntegration(integrationConfig || {}, context);
         break;
 
       default:

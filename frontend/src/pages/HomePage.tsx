@@ -82,14 +82,15 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Calculate stats
+  // Calculate stats - ensure workflows is always an array
+  const workflowsArray = Array.isArray(workflows) ? workflows : [];
   const stats = {
-    totalWorkflows: workflows.length,
-    activeWorkflows: workflows.filter(w => w.isActive).length,
+    totalWorkflows: workflowsArray.length,
+    activeWorkflows: workflowsArray.filter(w => w.isActive).length,
   };
 
   // Filter workflows
-  const filteredWorkflows = workflows.filter(w => {
+  const filteredWorkflows = workflowsArray.filter(w => {
     const matchesSearch = w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          w.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterStatus === 'all' || 
@@ -247,34 +248,6 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Usage Stats */}
-          {user && organization && (
-            <div className="px-2 mb-4">
-              <button
-                onClick={() => setShowUsageModal(true)}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors border border-slate-700"
-                title="View Usage & Limits"
-              >
-                <motion.div
-                  className="flex items-center gap-1.5 flex-1"
-                  animate={{
-                    opacity: sidebarHovered ? 1 : 0,
-                    width: sidebarHovered ? 'auto' : 0,
-                  }}
-                  transition={{ duration: 0.1, ease: 'easeOut' }}
-                >
-                  <span className="text-xs font-medium text-white">
-                    {usageStats?.workflows?.current ?? 0}
-                  </span>
-                  <span className="text-xs text-slate-400">/</span>
-                  <span className="text-xs text-slate-400">
-                    {usageStats?.workflows?.limit === 'unlimited' ? '∞' : (usageStats?.workflows?.limit ?? '-')}
-                  </span>
-                </motion.div>
-              </button>
-            </div>
-          )}
-
           {/* Navigation Items */}
           <nav className="flex-1 px-2">
             <SidebarItem
@@ -294,6 +267,12 @@ const HomePage: React.FC = () => {
               icon={ShoppingBag}
               label="Store"
               onClick={() => navigate('/store')}
+              expanded={sidebarHovered}
+            />
+            <SidebarItem
+              icon={BarChart3}
+              label="Usage"
+              onClick={() => navigate('/usage')}
               expanded={sidebarHovered}
             />
           </nav>

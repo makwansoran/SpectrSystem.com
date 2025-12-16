@@ -51,13 +51,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, onClick, e
 };
 
 interface SidebarProps {
-  activePage?: 'home' | 'data' | 'store' | 'settings' | 'profile';
-  onUsageClick?: () => void;
+  activePage?: 'home' | 'data' | 'store' | 'settings' | 'profile' | 'usage';
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activePage = 'home', onUsageClick }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activePage = 'home' }) => {
   const navigate = useNavigate();
-  const { user, organization, usageStats } = useUserStore();
+  const { user } = useUserStore();
   const [sidebarHovered, setSidebarHovered] = useState(false);
 
   const getInitials = (name: string | undefined) => {
@@ -98,33 +97,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage = 'home', onUsageClick }) 
           </div>
         </div>
 
-        {/* Usage Stats */}
-        {user && organization && (
-          <div className="px-2 mb-4">
-            <button
-              onClick={onUsageClick}
-              className={clsx(
-                'w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors',
-                !sidebarHovered && 'justify-center'
-              )}
-              title="View Usage & Limits"
-            >
-              <BarChart3 className="w-5 h-5 text-white flex-shrink-0" />
-              {sidebarHovered && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-white whitespace-nowrap">
-                    {usageStats?.workflows?.current ?? 0}
-                  </span>
-                  <span className="text-xs text-slate-400">/</span>
-                  <span className="text-xs text-slate-400 whitespace-nowrap">
-                    {usageStats?.workflows?.limit === 'unlimited' ? '∞' : (usageStats?.workflows?.limit ?? '-')}
-                  </span>
-                </div>
-              )}
-            </button>
-          </div>
-        )}
-
         {/* Navigation Items */}
         <nav className="flex-1 px-2">
           <SidebarItem
@@ -146,6 +118,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage = 'home', onUsageClick }) 
             label="Store"
             active={activePage === 'store'}
             onClick={() => navigate('/store')}
+            expanded={sidebarHovered}
+          />
+          <SidebarItem
+            icon={BarChart3}
+            label="Usage"
+            active={activePage === 'usage'}
+            onClick={() => navigate('/usage')}
             expanded={sidebarHovered}
           />
         </nav>

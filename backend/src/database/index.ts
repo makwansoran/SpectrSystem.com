@@ -6,49 +6,77 @@
  * Routes need to be updated to use await for database operations.
  */
 
+const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+
+// Import both modules - tsx needs to resolve them at compile time
+// We'll only use one based on DB_TYPE
 import * as sqliteDb from './sqlite';
 import * as postgresqlDb from './postgresql';
 
-const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+// Import user-related functions directly from postgresql
+import {
+  getUserByEmail as pgGetUserByEmail,
+  getUserById as pgGetUserById,
+  createUser as pgCreateUser,
+  createOrganization as pgCreateOrganization,
+  linkUserToOrganization as pgLinkUserToOrganization,
+  createEmailVerificationToken as pgCreateEmailVerificationToken,
+  getEmailVerificationToken as pgGetEmailVerificationToken,
+  markEmailVerificationTokenAsUsed as pgMarkEmailVerificationTokenAsUsed,
+  verifyUserEmail as pgVerifyUserEmail,
+  getUserOrganization as pgGetUserOrganization,
+  createPasswordResetToken as pgCreatePasswordResetToken,
+  getPasswordResetToken as pgGetPasswordResetToken,
+  markPasswordResetTokenAsUsed as pgMarkPasswordResetTokenAsUsed,
+  updateUserPassword as pgUpdateUserPassword
+} from './postgresql';
 
-// Export the appropriate database implementation
+// Select the appropriate database implementation
+const dbModule = dbType === 'postgresql' ? postgresqlDb : sqliteDb;
+
 if (dbType === 'postgresql') {
-  // PostgreSQL - all functions are async
-  export const initializeDatabase = postgresqlDb.initializeDatabase;
-  export const getAllWorkflows = postgresqlDb.getAllWorkflows;
-  export const getWorkflowById = postgresqlDb.getWorkflowById;
-  export const createWorkflow = postgresqlDb.createWorkflow;
-  export const updateWorkflow = postgresqlDb.updateWorkflow;
-  export const deleteWorkflow = postgresqlDb.deleteWorkflow;
-  export const deleteAllWorkflows = postgresqlDb.deleteAllWorkflows;
-  export const createExecution = postgresqlDb.createExecution;
-  export const updateExecution = postgresqlDb.updateExecution;
-  export const getExecutionById = postgresqlDb.getExecutionById;
-  export const getExecutions = postgresqlDb.getExecutions;
-  export const setDataStoreValue = postgresqlDb.setDataStoreValue;
-  export const getDataStoreValue = postgresqlDb.getDataStoreValue;
-  export const deleteDataStoreValue = postgresqlDb.deleteDataStoreValue;
-  export const db = postgresqlDb.pool; // Export pool for direct access
   console.log('📊 Using PostgreSQL database');
+  console.log('📊 PostgreSQL module type:', typeof postgresqlDb);
+  console.log('📊 PostgreSQL has getUserByEmail:', 'getUserByEmail' in postgresqlDb);
+  console.log('📊 getUserByEmail type:', typeof (postgresqlDb as any).getUserByEmail);
+  console.log('📊 All exports:', Object.keys(postgresqlDb).slice(0, 15).join(', '));
 } else {
-  // SQLite - all functions are synchronous
-  export const initializeDatabase = sqliteDb.initializeDatabase;
-  export const getAllWorkflows = sqliteDb.getAllWorkflows;
-  export const getWorkflowById = sqliteDb.getWorkflowById;
-  export const createWorkflow = sqliteDb.createWorkflow;
-  export const updateWorkflow = sqliteDb.updateWorkflow;
-  export const deleteWorkflow = sqliteDb.deleteWorkflow;
-  export const deleteAllWorkflows = sqliteDb.deleteAllWorkflows;
-  export const createExecution = sqliteDb.createExecution;
-  export const updateExecution = sqliteDb.updateExecution;
-  export const getExecutionById = sqliteDb.getExecutionById;
-  export const getExecutions = sqliteDb.getExecutions;
-  export const setDataStoreValue = sqliteDb.setDataStoreValue;
-  export const getDataStoreValue = sqliteDb.getDataStoreValue;
-  export const deleteDataStoreValue = sqliteDb.deleteDataStoreValue;
-  export const db = sqliteDb.db; // Export db instance for direct access
   console.log('📊 Using SQLite database');
 }
+
+// Export the appropriate database implementation
+export const initializeDatabase = dbModule.initializeDatabase;
+export const getAllWorkflows = dbModule.getAllWorkflows;
+export const getWorkflowById = dbModule.getWorkflowById;
+export const createWorkflow = dbModule.createWorkflow;
+export const updateWorkflow = dbModule.updateWorkflow;
+export const deleteWorkflow = dbModule.deleteWorkflow;
+export const deleteAllWorkflows = dbModule.deleteAllWorkflows;
+export const createExecution = dbModule.createExecution;
+export const updateExecution = dbModule.updateExecution;
+export const getExecutionById = dbModule.getExecutionById;
+export const getExecutions = dbModule.getExecutions;
+export const setDataStoreValue = dbModule.setDataStoreValue;
+export const getDataStoreValue = dbModule.getDataStoreValue;
+export const deleteDataStoreValue = dbModule.deleteDataStoreValue;
+export const db = dbType === 'postgresql' ? postgresqlDb.pool : sqliteDb.db;
+
+// Export user-related functions (only available in PostgreSQL, will be undefined for SQLite)
+export const getUserByEmail = dbType === 'postgresql' ? pgGetUserByEmail : undefined;
+export const getUserById = dbType === 'postgresql' ? pgGetUserById : undefined;
+export const createUser = dbType === 'postgresql' ? pgCreateUser : undefined;
+export const createOrganization = dbType === 'postgresql' ? pgCreateOrganization : undefined;
+export const linkUserToOrganization = dbType === 'postgresql' ? pgLinkUserToOrganization : undefined;
+export const createEmailVerificationToken = dbType === 'postgresql' ? pgCreateEmailVerificationToken : undefined;
+export const getEmailVerificationToken = dbType === 'postgresql' ? pgGetEmailVerificationToken : undefined;
+export const markEmailVerificationTokenAsUsed = dbType === 'postgresql' ? pgMarkEmailVerificationTokenAsUsed : undefined;
+export const verifyUserEmail = dbType === 'postgresql' ? pgVerifyUserEmail : undefined;
+export const getUserOrganization = dbType === 'postgresql' ? pgGetUserOrganization : undefined;
+export const updateOrganizationPlan = dbType === 'postgresql' ? (postgresqlDb as any).updateOrganizationPlan : undefined;
+export const createPasswordResetToken = dbType === 'postgresql' ? pgCreatePasswordResetToken : undefined;
+export const getPasswordResetToken = dbType === 'postgresql' ? pgGetPasswordResetToken : undefined;
+export const markPasswordResetTokenAsUsed = dbType === 'postgresql' ? pgMarkPasswordResetTokenAsUsed : undefined;
+export const updateUserPassword = dbType === 'postgresql' ? pgUpdateUserPassword : undefined;
 
 // Re-export types
 export type {

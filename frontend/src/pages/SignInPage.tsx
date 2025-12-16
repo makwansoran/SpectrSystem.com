@@ -45,11 +45,11 @@ const SignInPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex relative overflow-hidden">
+    <div className="min-h-screen bg-white text-gray-900 flex relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/5 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-white/5 blur-3xl" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gray-100 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gray-100 blur-3xl" />
       </div>
 
       {/* Two Column Layout */}
@@ -64,45 +64,45 @@ const SignInPage: React.FC = () => {
           >
             {/* Logo */}
             <div className="flex items-center mb-12">
-              <img src="/EyelogoWhite.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
-              <span className="text-2xl font-semibold tracking-wide" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '-0.02em' }}>SPECTR SYSTEM</span>
+              <img src="/EyelogoBlack.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
+              <span className="text-2xl font-semibold tracking-wide text-gray-900" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '-0.02em' }}>SPECTR SYSTEM</span>
             </div>
 
             {/* Title */}
-            <h1 className="text-4xl lg:text-5xl font-light tracking-tight mb-6">
+            <h1 className="text-4xl lg:text-5xl font-light tracking-tight mb-6 text-gray-900">
               Welcome back
             </h1>
-            <p className="text-xl text-white/70 mb-12 leading-relaxed">
+            <p className="text-xl text-gray-600 mb-12 leading-relaxed">
               Sign in to continue your work with SPECTR SYSTEM.
             </p>
 
             {/* Pointers Section */}
             <div className="space-y-8">
               <div className="flex items-start gap-5">
-                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0 mt-1">
-                  <Check className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Check className="w-5 h-5 text-gray-900" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-medium mb-2">Secure Access</h3>
-                  <p className="text-lg text-white/60 leading-relaxed">Your data is protected with enterprise-grade security</p>
+                  <h3 className="text-2xl font-medium mb-2 text-gray-900">Secure Access</h3>
+                  <p className="text-lg text-gray-600 leading-relaxed">Your data is protected with enterprise-grade security</p>
                 </div>
               </div>
               <div className="flex items-start gap-5">
-                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0 mt-1">
-                  <Check className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Check className="w-5 h-5 text-gray-900" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-medium mb-2">Seamless Workflow</h3>
-                  <p className="text-lg text-white/60 leading-relaxed">Pick up where you left off with your workflows and projects</p>
+                  <h3 className="text-2xl font-medium mb-2 text-gray-900">Seamless Workflow</h3>
+                  <p className="text-lg text-gray-600 leading-relaxed">Pick up where you left off with your workflows and projects</p>
                 </div>
               </div>
               <div className="flex items-start gap-5">
-                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0 mt-1">
-                  <Check className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Check className="w-5 h-5 text-gray-900" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-medium mb-2">Powerful Intelligence</h3>
-                  <p className="text-lg text-white/60 leading-relaxed">Access advanced analytics and intelligence tools</p>
+                  <h3 className="text-2xl font-medium mb-2 text-gray-900">Powerful Intelligence</h3>
+                  <p className="text-lg text-gray-600 leading-relaxed">Access advanced analytics and intelligence tools</p>
                 </div>
               </div>
             </div>
@@ -119,26 +119,26 @@ const SignInPage: React.FC = () => {
           >
             {/* Mobile Logo */}
             <div className="flex items-center justify-center mb-8 lg:hidden">
-              <img src="/EyelogoWhite.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
-              <span className="text-2xl font-semibold tracking-wide" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '-0.02em' }}>SPECTR SYSTEM</span>
+              <img src="/EyelogoBlack.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
+              <span className="text-2xl font-semibold tracking-wide text-gray-900" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '-0.02em' }}>SPECTR SYSTEM</span>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-10 lg:p-12">
+            <div className="bg-gray-50 backdrop-blur-sm border border-gray-200 rounded-lg p-10 lg:p-12">
               {/* Title */}
               <div className="mb-10">
-                <h1 className="text-3xl lg:text-4xl font-light tracking-tight mb-2">Sign in</h1>
-                <p className="text-white/60 text-lg">Welcome back to SPECTR SYSTEM</p>
+                <h1 className="text-3xl lg:text-4xl font-light tracking-tight mb-2 text-gray-900">Sign in</h1>
+                <p className="text-gray-600 text-lg">Welcome back to SPECTR SYSTEM</p>
               </div>
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Email */}
                 <div>
-                  <label htmlFor="email" className="block text-sm text-white/80 mb-2">
+                  <label htmlFor="email" className="block text-sm text-gray-700 mb-2">
                     Email
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       id="email"
                       type="email"
@@ -148,9 +148,9 @@ const SignInPage: React.FC = () => {
                       required
                       className={clsx(
                         'w-full pl-10 pr-4 py-4 rounded-lg text-base',
-                        'bg-white/5 border border-white/10',
-                        'text-white placeholder-white/40',
-                        'focus:outline-none focus:border-white/30 focus:bg-white/10',
+                        'bg-white border border-gray-300',
+                        'text-gray-900 placeholder-gray-400',
+                        'focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200',
                         'transition-colors'
                       )}
                     />
@@ -159,11 +159,11 @@ const SignInPage: React.FC = () => {
 
                 {/* Password */}
                 <div>
-                  <label htmlFor="password" className="block text-sm text-white/80 mb-2">
+                  <label htmlFor="password" className="block text-sm text-gray-700 mb-2">
                     Password
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
@@ -173,16 +173,16 @@ const SignInPage: React.FC = () => {
                       required
                       className={clsx(
                         'w-full pl-10 pr-12 py-4 rounded-lg text-base',
-                        'bg-white/5 border border-white/10',
-                        'text-white placeholder-white/40',
-                        'focus:outline-none focus:border-white/30 focus:bg-white/10',
+                        'bg-white border border-gray-300',
+                        'text-gray-900 placeholder-gray-400',
+                        'focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200',
                         'transition-colors'
                       )}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
@@ -196,11 +196,11 @@ const SignInPage: React.FC = () => {
 
                 {/* Forgot password */}
                 <div className="flex items-center justify-between text-sm">
-                  <label className="flex items-center gap-2 text-white/60">
-                    <input type="checkbox" className="rounded border-white/20 bg-white/5" />
+                  <label className="flex items-center gap-2 text-gray-600">
+                    <input type="checkbox" className="rounded border-gray-300 bg-white" />
                     <span>Remember me</span>
                   </label>
-                  <Link to="/forgot-password" className="text-white/60 hover:text-white transition-colors">
+                  <Link to="/forgot-password" className="text-gray-600 hover:text-gray-900 transition-colors">
                     Forgot password?
                   </Link>
                 </div>
@@ -211,15 +211,15 @@ const SignInPage: React.FC = () => {
                   disabled={isLoading}
                   className={clsx(
                     'w-full flex items-center justify-center gap-2 px-6 py-4 rounded-lg text-base',
-                    'bg-white text-black font-medium',
-                    'hover:bg-white/90 transition-colors',
+                    'bg-gray-900 text-white font-medium',
+                    'hover:bg-gray-800 transition-colors',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
                     'group'
                   )}
                 >
                   {isLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                       <span>Signing in...</span>
                     </>
                   ) : (
@@ -232,10 +232,10 @@ const SignInPage: React.FC = () => {
               </form>
 
               {/* Footer */}
-              <div className="mt-8 text-center text-sm text-white/60">
+              <div className="mt-8 text-center text-sm text-gray-600">
                 <p>
                   Don't have an account?{' '}
-                  <Link to="/signup" className="text-white hover:text-white/80 transition-colors">
+                  <Link to="/signup" className="text-gray-900 hover:text-gray-700 transition-colors">
                     Sign up
                   </Link>
                 </p>
@@ -245,7 +245,7 @@ const SignInPage: React.FC = () => {
               <div className="mt-6 text-center">
                 <Link
                   to="/"
-                  className="text-sm text-white/60 hover:text-white transition-colors"
+                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                 >
                   ← Back to home
                 </Link>

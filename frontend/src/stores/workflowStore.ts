@@ -197,6 +197,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   // Create a new workflow
   createNewWorkflow: async (name = 'Untitled Workflow') => {
+    // Prevent duplicate creation - if already loading or creating, return
+    const { isLoading, isSaving } = get();
+    if (isLoading || isSaving) {
+      console.warn('Workflow creation already in progress, skipping duplicate request');
+      return;
+    }
+    
     set({ isLoading: true });
     try {
       // If name is empty string, use default and auto-generate unique name
@@ -217,30 +224,11 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         uniqueName = name;
       }
 
-      // Create initial trigger node
-      const initialNode: FlowNode = {
-        id: generateId(),
-        type: 'manual-trigger',
-        position: { x: 250, y: 200 },
-        data: {
-          label: 'Manual Trigger',
-          nodeType: 'manual-trigger',
-          config: {},
-        },
-      };
-
+      // Create empty workflow (no initial nodes - user will add their own trigger)
       const workflow = await api.createWorkflow({
         name: uniqueName,
         description: '',
-        nodes: [{
-          id: initialNode.id,
-          type: 'manual-trigger',
-          position: initialNode.position,
-          data: {
-            label: initialNode.data.label,
-            config: initialNode.data.config,
-          },
-        }],
+        nodes: [],
         edges: [],
       });
 

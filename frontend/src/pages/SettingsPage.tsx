@@ -18,6 +18,7 @@ import {
   EyeOff,
   Check,
   X,
+  LogOut,
 } from 'lucide-react';
 import { useUserStore } from '../stores/userStore';
 import clsx from 'clsx';
@@ -25,7 +26,7 @@ import Sidebar from '../components/Sidebar';
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateProfile, fetchUsageStats } = useUserStore();
+  const { user, updateProfile, fetchUsageStats, logout } = useUserStore();
   const [activeTab, setActiveTab] = useState<'account' | 'security' | 'notifications' | 'danger'>('account');
   
   useEffect(() => {
@@ -85,6 +86,15 @@ const SettingsPage: React.FC = () => {
       console.error('Failed to change password:', error);
     } finally {
       setIsSavingPassword(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/signin');
+    } catch (error) {
+      console.error('Failed to logout:', error);
     }
   };
 
@@ -293,6 +303,23 @@ const SettingsPage: React.FC = () => {
                           </>
                         )}
                       </button>
+                    </div>
+                    <div className="pt-6 border-t border-slate-200">
+                      <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-slate-50">
+                        <div>
+                          <div className="text-sm font-medium text-slate-900 mb-1">Sign Out</div>
+                          <div className="text-xs text-slate-500">
+                            Sign out of your account. You'll need to sign in again to access your account.
+                          </div>
+                        </div>
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

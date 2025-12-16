@@ -31,6 +31,7 @@ const Canvas: React.FC = () => {
   const {
     nodes,
     edges,
+    workflowId,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -145,23 +146,42 @@ const Canvas: React.FC = () => {
 
   const isEmpty = nodes.length === 0;
 
+  // Debug: Log when nodes change
+  useEffect(() => {
+    if (nodes.length > 0) {
+      console.log('Canvas nodes updated:', {
+        count: nodes.length,
+        nodeIds: nodes.map(n => n.id),
+        firstNode: nodes[0] ? { id: nodes[0].id, type: nodes[0].type, position: nodes[0].position } : null,
+      });
+    }
+  }, [nodes.length]);
+
   // Set initial zoom when canvas loads with nodes
   useEffect(() => {
     if (reactFlowInstance && nodes.length > 0) {
       // Small delay to ensure nodes are rendered
-      setTimeout(() => {
-        reactFlowInstance.fitView({ 
-          padding: 0.3, 
-          minZoom: 0.4,
-          maxZoom: 1 
-        });
-      }, 100);
+      const timeoutId = setTimeout(() => {
+        try {
+          console.log('Fitting view for', nodes.length, 'nodes');
+          reactFlowInstance.fitView({ 
+            padding: 0.3, 
+            minZoom: 0.4,
+            maxZoom: 1 
+          });
+        } catch (error) {
+          console.warn('Failed to fit view:', error);
+        }
+      }, 200);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [reactFlowInstance, nodes.length]);
 
   return (
     <div ref={reactFlowWrapper} className="flex-1 h-full relative bg-white">
       <ReactFlow
+        key={workflowId || 'default'}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}

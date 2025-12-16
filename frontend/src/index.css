@@ -60,12 +60,22 @@ body, #root {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'SF Pro Display', Roboto, 'Helvetica Neue', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Display', 'Roboto', 'Helvetica Neue', sans-serif;
   background: var(--bg-base);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: 'kern' 1;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  text-rendering: optimizeLegibility;
+  font-variant-ligatures: common-ligatures;
+}
+
+/* Professional typography for nodes */
+.react-flow__node {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1;
   text-rendering: optimizeLegibility;
 }
 
@@ -93,13 +103,71 @@ body {
   background: #94a3b8;
 }
 
-/* React Flow - Palantir Style */
+/* Black scrollbar for navigation */
+header ::-webkit-scrollbar,
+nav ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+header ::-webkit-scrollbar-track,
+nav ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+header ::-webkit-scrollbar-thumb,
+nav ::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+header ::-webkit-scrollbar-thumb:hover,
+nav ::-webkit-scrollbar-thumb:hover {
+  background: #111827;
+}
+
+/* Firefox scrollbar for navigation */
+header {
+  scrollbar-width: thin;
+  scrollbar-color: #1f2937 transparent;
+}
+
+nav {
+  scrollbar-width: thin;
+  scrollbar-color: #1f2937 transparent;
+}
+
+/* Black scrollbar for entire page (Terms/Privacy pages) */
+.black-scrollbar ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.black-scrollbar ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.black-scrollbar ::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+.black-scrollbar ::-webkit-scrollbar-thumb:hover {
+  background: #111827;
+}
+
+.black-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #1f2937 transparent;
+}
+
+/* React Flow - Professional Style */
 .react-flow {
-  background: var(--bg-canvas) !important;
+  background: #fafbfc !important;
   background-image: 
-    linear-gradient(rgba(9, 105, 218, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(9, 105, 218, 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .react-flow__node {
@@ -111,29 +179,39 @@ body {
 }
 
 .react-flow__edge-path {
-  stroke: var(--border-hover);
-  stroke-width: 2.5;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
+  stroke: #cbd5e1;
+  stroke-width: 2;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.04));
+  transition: all 0.2s ease;
 }
 
 .react-flow__edge.selected .react-flow__edge-path,
 .react-flow__edge:hover .react-flow__edge-path {
-  stroke: var(--accent);
-  stroke-width: 3;
+  stroke: #3b82f6;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2));
 }
 
 .react-flow__handle {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--bg-surface);
-  border: 2.5px solid var(--border-hover);
+  background: white;
+  border: 2px solid #cbd5e1;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .react-flow__handle:hover {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #eff6ff;
+  border-color: #3b82f6;
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.react-flow__handle.connecting {
+  background: #3b82f6;
+  border-color: #3b82f6;
   transform: scale(1.15);
 }
 
@@ -359,4 +437,72 @@ img {
   60% { clip: rect(23px, 9999px, 68px, 0); }
   80% { clip: rect(91px, 9999px, 12px, 0); }
   100% { clip: rect(45px, 9999px, 56px, 0); }
+}
+
+/* Loading bar text effect */
+@keyframes loading-bar {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Data flow animation */
+@keyframes move-right {
+  0% {
+    left: 0%;
+    transform: translateY(-50%);
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 12px);
+    transform: translateY(-50%);
+    opacity: 0.8;
+  }
+}
+
+/* Integration carousel animations */
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-right {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-scroll-left {
+  animation: scroll-left 30s linear infinite;
+}
+
+.animate-scroll-right {
+  animation: scroll-right 30s linear infinite;
+}
+
+.text-loading-bar {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(156, 163, 175, 0.6) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: white;
+  color: white;
+  animation: loading-bar 2s linear infinite;
 }

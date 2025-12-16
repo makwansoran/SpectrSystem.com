@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, ArrowUp, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sendAgentMessage } from '../services/api';
 
 interface AgentChatProps {
   isOpen: boolean;
@@ -73,20 +74,39 @@ const AgentChat: React.FC<AgentChatProps> = ({ isOpen, onClose }) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const userInput = inputValue.trim();
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI thinking and response
-    setTimeout(() => {
+    try {
+      // Build conversation history from current messages
+      const conversationHistory = messages.map(msg => ({
+        from: msg.from,
+        text: msg.text
+      }));
+
+      // Call the API
+      const response = await sendAgentMessage(userInput, conversationHistory);
+
       const agentMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'I understand your request. Let me process that for you...',
+        text: response.message,
         from: 'agent',
         timestamp: new Date().toLocaleTimeString()
       };
       setMessages(prev => [...prev, agentMessage]);
+    } catch (error: any) {
+      console.error('Agent chat error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: error.message || 'Sorry, I encountered an error. Please try again.',
+        from: 'agent',
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -135,8 +155,8 @@ const AgentChat: React.FC<AgentChatProps> = ({ isOpen, onClose }) => {
                   >
                     <div
                       className={message.from === 'user' 
-                        ? 'bg-slate-600 text-white px-3 py-2 rounded-lg text-xs leading-relaxed whitespace-pre-wrap font-mono max-w-[85%] break-words'
-                        : 'text-xs leading-relaxed whitespace-pre-wrap font-mono text-slate-900'
+                        ? 'bg-slate-600 text-white px-3 py-2 rounded-lg text-xs leading-relaxed whitespace-pre-wrap max-w-[85%] break-words'
+                        : 'text-xs leading-relaxed whitespace-pre-wrap text-slate-900'
                       }
                     >
                       {message.text}
@@ -148,7 +168,7 @@ const AgentChat: React.FC<AgentChatProps> = ({ isOpen, onClose }) => {
                 {isTyping && (
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-slate-900 rounded-full animate-pulse" style={{ animationDuration: '0.5s' }} />
-                    <span className="text-xs font-mono text-slate-900">
+                    <span className="text-xs text-slate-900">
                       thinking{thinkingDots}
                     </span>
                   </div>
@@ -167,7 +187,7 @@ const AgentChat: React.FC<AgentChatProps> = ({ isOpen, onClose }) => {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Ask me anything..."
-                  className="w-full px-3 py-2 pr-12 text-xs bg-white border border-slate-300/50 rounded-lg text-slate-900 placeholder-slate-400 font-mono focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all"
+                  className="w-full px-3 py-2 pr-12 text-xs bg-white border border-slate-300/50 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all"
                   disabled={isTyping}
                 />
                 <button
@@ -178,7 +198,7 @@ const AgentChat: React.FC<AgentChatProps> = ({ isOpen, onClose }) => {
                   <ArrowUp className="w-3.5 h-3.5" />
                 </button>
               </form>
-              <p className="text-[10px] text-slate-500 mt-2 text-center font-mono">
+              <p className="text-[10px] text-slate-500 mt-2 text-center">
                 AI Agent • Powered by SPECTR SYSTEM
               </p>
             </div>

@@ -7,8 +7,11 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../database';
+import { db, getUserByEmail, getUserById, createUser, createOrganization, linkUserToOrganization, createEmailVerificationToken, getEmailVerificationToken, markEmailVerificationTokenAsUsed, verifyUserEmail, getUserOrganization, createPasswordResetToken, getPasswordResetToken, markPasswordResetTokenAsUsed, updateUserPassword } from '../database';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email';
+
+// Import PostgreSQL functions if using PostgreSQL
+const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -51,7 +54,19 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(emailTrimmed);
+    let existingUser;
+    if (dbType === 'postgresql') {
+      if (!getUserByEmail) {
+        console.error('getUserByEmail is undefined! dbType:', dbType);
+        return res.status(500).json({
+          success: false,
+          error: 'Database configuration error',
+        });
+      }
+      existingUser = await getUserByEmail(emailTrimmed);
+    } else {
+      existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(emailTrimmed);
+    }
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -66,32 +81,67 @@ router.post('/register', async (req, res) => {
     const userId = uuidv4();
     const now = new Date().toISOString();
 
-    db.prepare(`
-      INSERT INTO users (id, email, name, password_hash, email_verified, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 0, ?, ?)
-    `).run(userId, emailTrimmed, nameTrimmed, passwordHash, now, now);
+    if (dbType === 'postgresql' && createUser) {
+      await createUser({
+        id: userId,
+        email: emailTrimmed,
+        name: nameTrimmed,
+        passwordHash,
+        emailVerified: false
+      });
+    } else {
+      db.prepare(`
+        INSERT INTO users (id, email, name, password_hash, email_verified, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 0, ?, ?)
+      `).run(userId, emailTrimmed, nameTrimmed, passwordHash, now, now);
+    }
 
     // Create default organization for user
     const orgId = uuidv4();
-    db.prepare(`
-      INSERT INTO organizations (id, name, plan, created_at, updated_at)
-      VALUES (?, ?, 'free', ?, ?)
-    `).run(orgId, `${nameTrimmed}'s Organization`, now, now);
+    if (dbType === 'postgresql' && createOrganization) {
+      await createOrganization({
+        id: orgId,
+        name: `${nameTrimmed}'s Organization`,
+        plan: 'free'
+      });
+    } else {
+      db.prepare(`
+        INSERT INTO organizations (id, name, plan, created_at, updated_at)
+        VALUES (?, ?, 'free', ?, ?)
+      `).run(orgId, `${nameTrimmed}'s Organization`, now, now);
+    }
 
     // Link user to organization
-    db.prepare(`
-      INSERT INTO user_organizations (user_id, organization_id, role, created_at)
-      VALUES (?, ?, 'admin', ?)
-    `).run(userId, orgId, now);
+    if (dbType === 'postgresql' && linkUserToOrganization) {
+      await linkUserToOrganization({
+        userId,
+        organizationId: orgId,
+        role: 'admin'
+      });
+    } else {
+      db.prepare(`
+        INSERT INTO user_organizations (user_id, organization_id, role, created_at)
+        VALUES (?, ?, 'admin', ?)
+      `).run(userId, orgId, now);
+    }
 
     // Generate verification token
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
 
-    db.prepare(`
-      INSERT INTO email_verification_tokens (id, user_id, token, expires_at, created_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(uuidv4(), userId, token, expiresAt, now);
+    if (dbType === 'postgresql' && createEmailVerificationToken) {
+      await createEmailVerificationToken({
+        id: uuidv4(),
+        userId,
+        token,
+        expiresAt
+      });
+    } else {
+      db.prepare(`
+        INSERT INTO email_verification_tokens (id, user_id, token, expires_at, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(uuidv4(), userId, token, expiresAt, now);
+    }
 
     // Send verification email
     const emailSent = await sendVerificationEmail(emailTrimmed, nameTrimmed, token);
@@ -152,34 +202,21 @@ router.post('/verify-email', async (req, res) => {
     }
 
     // Find verification token
-    const verification = db.prepare(`
-      SELECT evt.*, u.id as user_id, u.email, u.email_verified
-      FROM email_verification_tokens evt
-      JOIN users u ON evt.user_id = u.id
-      WHERE evt.token = ? AND evt.used = 0
-    `).get(token) as any;
+    let verification;
+    if (dbType === 'postgresql' && getEmailVerificationToken) {
+      verification = await getEmailVerificationToken(token);
+    } else {
+      verification = db.prepare(`
+        SELECT evt.*, u.id as user_id, u.email, u.email_verified
+        FROM email_verification_tokens evt
+        JOIN users u ON evt.user_id = u.id
+        WHERE evt.token = ? AND evt.used = 0
+      `).get(token) as any;
+    }
 
     console.log('Verification lookup result:', verification ? 'Found' : 'Not found');
     
     if (!verification) {
-      // Check if token exists but is already used
-      const usedToken = db.prepare(`
-        SELECT evt.*, u.email
-        FROM email_verification_tokens evt
-        JOIN users u ON evt.user_id = u.id
-        WHERE evt.token = ?
-      `).get(token) as any;
-      
-      if (usedToken) {
-        if (usedToken.used === 1) {
-          console.log('Token already used');
-          return res.status(400).json({
-            success: false,
-            error: 'This verification link has already been used. Please request a new verification email.',
-          });
-        }
-      }
-      
       console.log('Token not found in database');
       return res.status(400).json({
         success: false,
@@ -204,20 +241,31 @@ router.post('/verify-email', async (req, res) => {
     }
 
     // Mark token as used
-    db.prepare('UPDATE email_verification_tokens SET used = 1 WHERE token = ?').run(token);
-
-    // Mark user email as verified
-    const now = new Date().toISOString();
-    db.prepare('UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?').run(now, verification.user_id);
+    const userId = verification.user_id;
+    if (dbType === 'postgresql' && markEmailVerificationTokenAsUsed && verifyUserEmail) {
+      await markEmailVerificationTokenAsUsed(verification.id);
+      await verifyUserEmail(userId);
+    } else {
+      db.prepare('UPDATE email_verification_tokens SET used = 1 WHERE token = ?').run(token);
+      const now = new Date().toISOString();
+      db.prepare('UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?').run(now, userId);
+    }
 
     // Get user and organization
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(verification.user_id) as any;
-    const userOrg = db.prepare(`
-      SELECT o.*, uo.role
-      FROM organizations o
-      JOIN user_organizations uo ON o.id = uo.organization_id
-      WHERE uo.user_id = ?
-    `).get(verification.user_id) as any;
+    let user;
+    let userOrg;
+    if (dbType === 'postgresql' && getUserById && getUserOrganization) {
+      user = await getUserById(userId);
+      userOrg = await getUserOrganization(userId);
+    } else {
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as any;
+      userOrg = db.prepare(`
+        SELECT o.*, uo.role
+        FROM organizations o
+        JOIN user_organizations uo ON o.id = uo.organization_id
+        WHERE uo.user_id = ?
+      `).get(userId) as any;
+    }
 
     // Generate new JWT token with verified status
     const jwtToken = jwt.sign(
@@ -337,7 +385,12 @@ router.post('/login', async (req, res) => {
     }
 
     // Find user
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+    let user;
+    if (dbType === 'postgresql' && getUserByEmail) {
+      user = await getUserByEmail(email);
+    } else {
+      user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+    }
 
     if (!user) {
       return res.status(401).json({
@@ -356,7 +409,8 @@ router.post('/login', async (req, res) => {
     }
 
     // Check if email is verified - REQUIRED for login
-    if (!user.email_verified) {
+    const emailVerified = dbType === 'postgresql' ? Boolean(user.email_verified) : Boolean(user.email_verified);
+    if (!emailVerified) {
       return res.status(403).json({
         success: false,
         error: 'Email verification required',
@@ -366,12 +420,17 @@ router.post('/login', async (req, res) => {
     }
 
     // Get user's organization
-    const userOrg = db.prepare(`
-      SELECT o.*, uo.role
-      FROM organizations o
-      JOIN user_organizations uo ON o.id = uo.organization_id
-      WHERE uo.user_id = ?
-    `).get(user.id) as any;
+    let userOrg;
+    if (dbType === 'postgresql' && getUserOrganization) {
+      userOrg = await getUserOrganization(user.id);
+    } else {
+      userOrg = db.prepare(`
+        SELECT o.*, uo.role
+        FROM organizations o
+        JOIN user_organizations uo ON o.id = uo.organization_id
+        WHERE uo.user_id = ?
+      `).get(user.id) as any;
+    }
 
     // Generate JWT token (only if email is verified)
     const jwtToken = jwt.sign(
@@ -558,9 +617,15 @@ router.get('/me', async (req, res) => {
 
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const userId = decoded.userId;
 
     // Get user
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(decoded.userId) as any;
+    let user;
+    if (dbType === 'postgresql' && createOrganization) {
+      user = await getUserById!(userId);
+    } else {
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as any;
+    }
 
     if (!user) {
       return res.status(404).json({
@@ -570,12 +635,17 @@ router.get('/me', async (req, res) => {
     }
 
     // Get user's organization
-    const userOrg = db.prepare(`
-      SELECT o.*, uo.role
-      FROM organizations o
-      JOIN user_organizations uo ON o.id = uo.organization_id
-      WHERE uo.user_id = ?
-    `).get(user.id) as any;
+    let userOrg;
+    if (dbType === 'postgresql' && getUserOrganization) {
+      userOrg = await getUserOrganization(user.id);
+    } else {
+      userOrg = db.prepare(`
+        SELECT o.*, uo.role
+        FROM organizations o
+        JOIN user_organizations uo ON o.id = uo.organization_id
+        WHERE uo.user_id = ?
+      `).get(user.id) as any;
+    }
 
     res.json({
       success: true,

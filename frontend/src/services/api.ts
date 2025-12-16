@@ -11,7 +11,8 @@ import type {
   ApiResponse 
 } from '../types';
 
-const API_BASE = '/api';
+// Use environment variable for API URL, fallback to /api for development
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -490,6 +491,34 @@ export async function updateProfile(data: Partial<any>): Promise<any> {
   const response = await api.put<ApiResponse<any>>('/auth/profile', data);
   if (!response.data.data) {
     throw new Error(response.data.error || 'Failed to update profile');
+  }
+  return response.data.data;
+}
+
+// ============================================
+// AI Agent Chat API
+// ============================================
+
+/**
+ * Send a message to the AI agent
+ */
+export async function sendAgentMessage(
+  message: string,
+  conversationHistory: Array<{ from: 'user' | 'agent'; text: string }> = []
+): Promise<{ message: string; model: string; provider: string }> {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  
+  const response = await api.post<ApiResponse<{ message: string; model: string; provider: string }>>(
+    '/agent/chat',
+    { message, conversationHistory }
+  );
+  
+  if (!response.data.data) {
+    throw new Error(response.data.error || 'Failed to send message');
   }
   return response.data.data;
 }

@@ -6,6 +6,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LandingPage, PricingPage, SignInPage, SignUpPage, HomePage, SolutionsPage } from './pages';
+import SolutionsIndexPage from './pages/SolutionsIndexPage';
 import DataPage from './pages/DataPage';
 import ScrollToTop from './components/ScrollToTop';
 import VerifyEmailPage from './pages/VerifyEmailPage';
@@ -24,6 +25,7 @@ import TermsOfServicePage from './pages/TermsOfServicePage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import StorePage from './pages/StorePage';
 import DataPackDetailPage from './pages/DataPackDetailPage';
+import UsagePage from './pages/UsagePage';
 
 const App: React.FC = () => {
   return (
@@ -52,8 +54,10 @@ const App: React.FC = () => {
         <Route path="/store/:packId" element={<DataPackDetailPage />} />
         <Route path="/terms" element={<TermsOfServicePage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/solutions" element={<SolutionsIndexPage />} />
         <Route path="/solutions/:slug" element={<SolutionsPage />} />
         <Route path="/data" element={<DataPage />} />
+        <Route path="/usage" element={<UsagePage />} />
       </Routes>
     </BrowserRouter>
   );

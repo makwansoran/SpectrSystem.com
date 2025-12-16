@@ -7,6 +7,9 @@
 export { executeManualTrigger } from './triggers/manual-trigger';
 export { executeWebhookTrigger } from './triggers/webhook-trigger';
 export { executeScheduleTrigger } from './triggers/schedule-trigger';
+export { executeEntitySignupTrigger } from './triggers/entity-signup-trigger';
+export { executeExternalAlertTrigger } from './triggers/external-alert-trigger';
+export { executePeriodicDataPullTrigger } from './triggers/periodic-data-pull-trigger';
 
 // Core Actions
 export { executeHttpRequest } from './core/http-request';
@@ -45,5 +48,35 @@ export {
   executeMapVisualization,
   executeReportGenerator,
   executeDataExport,
+  executeOSINTEnrichment,
+  executeCorporateRegistry,
+  executeSanctionsBlacklist,
+  executeSocialFootprint,
+  executeDomainVerification,
+  executeRiskScoring,
+  executeGDPRCompliance,
+  executeHistoricalCorrelation,
 } from './intelligence';
+
+// Decision and Action Nodes
+export {
+  executeRiskLevelDecision,
+  executeApprovalGate,
+  executeEscalation,
+  executeBranching,
+  executeNotifyTeam,
+  executeRequestDocuments,
+  executeAccountRestriction,
+  executeTicketGeneration,
+  executeLogOutcome,
+  executeAuditLogging,
+  executeExecutionControl,
+  executeHumanOverride,
+  executeRateQuota,
+  executeForm,
+  executeLoginAuthentication,
+  executeRedirection,
+  executeDashboard,
+  executeIntegration,
+} from './decision-action';
 

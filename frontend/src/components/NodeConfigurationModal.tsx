@@ -17,7 +17,9 @@ import {
   Table, FileText, Calendar, BookOpen, Grid3X3, LayoutGrid, CheckSquare, LayoutDashboard, MousePointerClick, ListTodo,
   Github, GitBranch, Bug, Layers, AlertTriangle, Sparkles, Megaphone,
   BarChart3, PieChart, Activity, FileQuestion, ClipboardList, FormInput,
-  Headphones, HelpCircle, MessagesSquare
+  Headphones, HelpCircle, MessagesSquare, Link, Upload, Globe, Server, 
+  Lock, Key, CheckCircle2, AlertCircle, RefreshCw, Webhook,
+  Shield, Network, MapPin, Ship, DollarSign, Search, Brain
 } from 'lucide-react';
 import { useWorkflowStore } from '../stores/workflowStore';
 import { getNodeDefinition } from '../constants/nodes';
@@ -680,6 +682,12 @@ const NodeSettings: React.FC<NodeSettingsProps> = ({ nodeType, config, onChange 
       return <ScheduleSettings config={(config || {}) as unknown as ScheduleConfig} onChange={onChange} />;
     case 'store-data':
       return <StoreDataSettings config={(config || {}) as unknown as StoreDataConfig} onChange={onChange} />;
+    case 'form':
+      return <FormSettings config={config || {}} onChange={onChange} />;
+    case 'connected-data-input':
+      return <ConnectedDataInputSettings config={config || {}} onChange={onChange} />;
+    case 'purchased-data-input':
+      return <SpectrLiveDataSettings config={config || {}} onChange={onChange} />;
     // Intelligence nodes
     case 'osint-domain':
       return <DomainIntelligenceSettings config={config} onChange={onChange} />;
@@ -933,18 +941,484 @@ const StoreDataSettings: React.FC<{
 const WebScraperSettings: React.FC<{
   config: WebScraperConfig;
   onChange: (key: string, value: unknown) => void;
-}> = ({ config, onChange }) => (
-  <div className="space-y-4">
-    <div>
-      <Label>URL to Scrape</Label>
-      <Input
-        value={config.url || ''}
-        onChange={(e) => onChange('url', e.target.value)}
-        placeholder="https://example.com/page"
-      />
+}> = ({ config, onChange }) => {
+  const [activeTab, setActiveTab] = useState<'basic' | 'extraction' | 'advanced' | 'output'>('basic');
+  
+  const advancedPrompt = `You are an expert web scraping AI. Your task is to extract structured data from websites with precision and efficiency. The scraper must:
+
+Support dynamic content: Handle JavaScript-rendered pages, infinite scrolling, and AJAX-loaded content.
+
+Handle anti-bot measures: Rotate user agents, IPs, manage cookies, solve basic CAPTCHAs, and respect rate limits.
+
+Data extraction rules: Identify relevant fields automatically, extract nested and tabular data, handle multi-page navigation, and detect pagination patterns.
+
+Data normalization: Clean text, remove HTML tags, unify date and number formats, detect duplicates, and categorize data based on semantic meaning.
+
+Error handling & logging: Detect failed requests, retry intelligently, log all errors with page context, and resume scraping from last successful point.
+
+Extensibility: Allow configuration to target new sites without code changes, supporting custom CSS selectors, XPath, or AI-based field detection.
+
+Output: Return data in structured formats (JSON, CSV, or database-ready), preserving hierarchical relationships, timestamps, and source URLs.
+
+Security & compliance: Respect robots.txt, rate limits, and GDPR-sensitive fields where applicable.
+
+Begin by analyzing the target site's structure automatically. Identify all relevant content, including hidden or dynamically loaded elements. Ensure data is validated and cleaned before outputting. Optimize for speed and reliability while minimizing detection.`;
+
+  return (
+    <div className="space-y-4">
+      {/* Advanced Prompt Section */}
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+        <div className="flex items-start gap-3 mb-2">
+          <Brain className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-slate-900 mb-2">AI Scraping Instructions</h3>
+            <Textarea
+              value={config.advancedPrompt || advancedPrompt}
+              onChange={(e) => onChange('advancedPrompt', e.target.value)}
+              rows={8}
+              className="font-mono text-xs bg-white border-slate-300"
+              placeholder="Enter custom scraping instructions..."
+            />
+            <p className="text-xs text-slate-500 mt-2">These instructions guide the AI-powered scraper. Modify to customize behavior for specific sites.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-slate-200">
+        <div className="flex gap-2">
+          {(['basic', 'extraction', 'advanced', 'output'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
+                activeTab === tab
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Basic Tab */}
+      {activeTab === 'basic' && (
+        <div className="space-y-4">
+          <div>
+            <Label>URL to Scrape</Label>
+            <Input
+              value={config.url || ''}
+              onChange={(e) => onChange('url', e.target.value)}
+              placeholder="https://example.com/page"
+              required
+            />
+            <p className="text-xs text-slate-400 mt-1">Enter the URL of the webpage to scrape</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Timeout (seconds)</Label>
+              <Input
+                type="number"
+                value={config.timeout || 60}
+                onChange={(e) => onChange('timeout', parseInt(e.target.value) || 60)}
+                placeholder="60"
+              />
+            </div>
+            <div>
+              <Label>Max Retries</Label>
+              <Input
+                type="number"
+                value={config.maxRetries || 3}
+                onChange={(e) => onChange('maxRetries', parseInt(e.target.value) || 3)}
+                placeholder="3"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={config.enableJS || false}
+                onChange={(e) => onChange('enableJS', e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700">Enable JavaScript Rendering</span>
+            </label>
+            <p className="text-xs text-slate-400 ml-6">Use headless browser for JavaScript-heavy sites</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={config.respectRobots !== false}
+                onChange={(e) => onChange('respectRobots', e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700">Respect robots.txt</span>
+            </label>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={config.rotateUserAgents || false}
+                onChange={(e) => onChange('rotateUserAgents', e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700">Rotate User Agents</span>
+            </label>
+            <p className="text-xs text-slate-400 ml-6">Randomize user agents to avoid detection</p>
+          </div>
+        </div>
+      )}
+
+      {/* Extraction Tab */}
+      {activeTab === 'extraction' && (
+        <div className="space-y-4">
+          <div>
+            <label className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                checked={config.aiFieldDetection || false}
+                onChange={(e) => onChange('aiFieldDetection', e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-slate-700">AI-Powered Field Detection</span>
+            </label>
+            <p className="text-xs text-slate-400 ml-6">Automatically identify and extract relevant fields using AI</p>
+          </div>
+
+          <div>
+            <Label>CSS Selectors / XPath (Optional if AI detection enabled)</Label>
+            <Textarea
+              value={config.selectors ? JSON.stringify(config.selectors, null, 2) : ''}
+              onChange={(e) => {
+                try {
+                  const parsed = JSON.parse(e.target.value);
+                  onChange('selectors', parsed);
+                } catch {
+                  // Invalid JSON, don't update
+                }
+              }}
+              placeholder='[{"name": "title", "selector": "h1", "xpath": "//h1", "attribute": "text", "multiple": false}]'
+              rows={6}
+              className="font-mono text-xs"
+            />
+            <p className="text-xs text-slate-400 mt-1">JSON array: name, selector (CSS), xpath (optional), attribute, multiple</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.extractTables || false}
+                  onChange={(e) => onChange('extractTables', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700">Extract Tabular Data</span>
+              </label>
+            </div>
+            <div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.extractNested || false}
+                  onChange={(e) => onChange('extractNested', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700">Extract Nested Data</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <Label>Wait for Selector (Optional)</Label>
+            <Input
+              value={config.waitForSelector || ''}
+              onChange={(e) => onChange('waitForSelector', e.target.value)}
+              placeholder=".content-loaded"
+            />
+            <p className="text-xs text-slate-400 mt-1">CSS selector to wait for before scraping</p>
+          </div>
+
+          <div>
+            <Label>Wait Time After Load (ms)</Label>
+            <Input
+              type="number"
+              value={config.waitTime || 1000}
+              onChange={(e) => onChange('waitTime', parseInt(e.target.value) || 1000)}
+              placeholder="1000"
+            />
+            <p className="text-xs text-slate-400 mt-1">Time to wait after page load for dynamic content</p>
+          </div>
+        </div>
+      )}
+
+      {/* Advanced Tab */}
+      {activeTab === 'advanced' && (
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">Dynamic Content Handling</h4>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.handleInfiniteScroll || false}
+                  onChange={(e) => onChange('handleInfiniteScroll', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700">Handle Infinite Scroll</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.waitForNetworkIdle || false}
+                  onChange={(e) => onChange('waitForNetworkIdle', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700">Wait for Network Idle</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">Pagination</h4>
+            <label className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                checked={config.pagination?.enabled || false}
+                onChange={(e) => onChange('pagination', { ...config.pagination, enabled: e.target.checked })}
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700">Enable Pagination</span>
+            </label>
+            {config.pagination?.enabled && (
+              <div className="ml-6 space-y-3 mt-3">
+                <div>
+                  <Label>Next Page Selector</Label>
+                  <Input
+                    value={config.pagination?.selector || ''}
+                    onChange={(e) => onChange('pagination', { ...config.pagination, selector: e.target.value })}
+                    placeholder=".next-page, a[rel='next']"
+                  />
+                </div>
+                <div>
+                  <Label>Max Pages</Label>
+                  <Input
+                    type="number"
+                    value={config.pagination?.maxPages || 10}
+                    onChange={(e) => onChange('pagination', { ...config.pagination, maxPages: parseInt(e.target.value) || 10 })}
+                    placeholder="10"
+                  />
+                </div>
+                <div>
+                  <Label>URL Pattern (Optional)</Label>
+                  <Input
+                    value={config.pagination?.pattern || ''}
+                    onChange={(e) => onChange('pagination', { ...config.pagination, pattern: e.target.value })}
+                    placeholder="page={page}"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">Rate Limiting</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Requests</Label>
+                <Input
+                  type="number"
+                  value={config.rateLimit?.requests || 10}
+                  onChange={(e) => onChange('rateLimit', { ...config.rateLimit, requests: parseInt(e.target.value) || 10 })}
+                  placeholder="10"
+                />
+              </div>
+              <div>
+                <Label>Window (seconds)</Label>
+                <Input
+                  type="number"
+                  value={config.rateLimit?.window || 60}
+                  onChange={(e) => onChange('rateLimit', { ...config.rateLimit, window: parseInt(e.target.value) || 60 })}
+                  placeholder="60"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">Error Handling</h4>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.resumeFromLastPoint || false}
+                  onChange={(e) => onChange('resumeFromLastPoint', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700">Resume from Last Successful Point</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.logErrors !== false}
+                  onChange={(e) => onChange('logErrors', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700">Log Errors with Context</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">Proxy (Optional)</h4>
+            <label className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                checked={config.proxy?.enabled || false}
+                onChange={(e) => onChange('proxy', { ...config.proxy, enabled: e.target.checked })}
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700">Enable Proxy</span>
+            </label>
+            {config.proxy?.enabled && (
+              <div className="ml-6 mt-2">
+                <Input
+                  value={config.proxy?.url || ''}
+                  onChange={(e) => onChange('proxy', { ...config.proxy, url: e.target.value })}
+                  placeholder="http://proxy.example.com:8080"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Output Tab */}
+      {activeTab === 'output' && (
+        <div className="space-y-4">
+          <div>
+            <Label>Output Format</Label>
+            <Select
+              value={config.outputFormat || 'json'}
+              onChange={(e) => onChange('outputFormat', e.target.value)}
+            >
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+              <option value="database">Database-Ready</option>
+            </Select>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">Data Normalization</h4>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.normalizeData !== false}
+                  onChange={(e) => onChange('normalizeData', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700">Enable Data Normalization</span>
+              </label>
+              {config.normalizeData !== false && (
+                <div className="ml-6 space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={config.removeHTML !== false}
+                      onChange={(e) => onChange('removeHTML', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-slate-700">Remove HTML Tags</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={config.cleanText !== false}
+                      onChange={(e) => onChange('cleanText', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-slate-700">Clean Text (trim, normalize whitespace)</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={config.unifyDates || false}
+                      onChange={(e) => onChange('unifyDates', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-slate-700">Unify Date Formats</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={config.unifyNumbers || false}
+                      onChange={(e) => onChange('unifyNumbers', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-slate-700">Unify Number Formats</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={config.detectDuplicates || false}
+                      onChange={(e) => onChange('detectDuplicates', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-slate-700">Detect Duplicates</span>
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">Security & Compliance</h4>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.gdprCompliance || false}
+                  onChange={(e) => onChange('gdprCompliance', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700">GDPR Compliance Mode</span>
+              </label>
+              <p className="text-xs text-slate-400 ml-6">Handle GDPR-sensitive fields appropriately</p>
+            </div>
+          </div>
+
+          <div>
+            <Label>Custom Headers (JSON)</Label>
+            <Textarea
+              value={config.headers ? JSON.stringify(config.headers, null, 2) : '{}'}
+              onChange={(e) => {
+                try {
+                  const parsed = JSON.parse(e.target.value);
+                  onChange('headers', parsed);
+                } catch {
+                  // Invalid JSON, don't update
+                }
+              }}
+              rows={4}
+              className="font-mono text-xs"
+              placeholder='{"User-Agent": "Custom Agent", "Accept": "application/json"}'
+            />
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 const DatabaseSettings: React.FC<{
   config: DatabaseConfig;
@@ -1026,6 +1500,1154 @@ const CodeSettings: React.FC<{
     </div>
   </div>
 );
+
+import { COUNTRIES } from '../constants/countries';
+
+// Connected Data Input Settings
+const ConnectedDataInputSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  const [connectionType, setConnectionType] = useState<string>(config.connectionType || 'api');
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  
+  const connectionTypes = [
+    { id: 'api', name: 'API Integration', icon: Globe, description: 'Connect to REST APIs' },
+    { id: 'database', name: 'Database', icon: Database, description: 'Direct database connection' },
+    { id: 'file', name: 'File Upload', icon: Upload, description: 'Upload CSV, Excel, or JSON files' },
+    { id: 'cloud', name: 'Cloud Storage', icon: Cloud, description: 'Google Drive, Dropbox, S3' },
+    { id: 'webhook', name: 'Webhook', icon: Webhook, description: 'Receive real-time data' },
+    { id: 'oauth', name: 'OAuth Integration', icon: Lock, description: 'Connect via OAuth' },
+    { id: 'sftp', name: 'SFTP/FTP', icon: Server, description: 'File server connection' },
+  ];
+  
+  const handleConnectionTypeChange = (type: string) => {
+    setConnectionType(type);
+    onChange('connectionType', type);
+    // Reset test result when changing connection type
+    setTestResult(null);
+  };
+  
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    
+    // Simulate connection test (in real implementation, this would call the backend)
+    setTimeout(() => {
+      setTesting(false);
+      setTestResult({
+        success: true,
+        message: 'Connection test successful!'
+      });
+    }, 1500);
+  };
+  
+  const SelectedIcon = connectionTypes.find(t => t.id === connectionType)?.icon || Globe;
+  
+  return (
+    <div className="space-y-6">
+      {/* Connection Type Selection */}
+      <div>
+        <Label>Connection Type</Label>
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          {connectionTypes.map((type) => {
+            const Icon = type.icon;
+            const isSelected = connectionType === type.id;
+            return (
+              <button
+                key={type.id}
+                onClick={() => handleConnectionTypeChange(type.id)}
+                className={`p-3 rounded-lg border-2 text-left transition-all ${
+                  isSelected
+                    ? 'border-slate-900 bg-slate-50'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`p-2 rounded-lg ${isSelected ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-900">{type.name}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{type.description}</p>
+                  </div>
+                  {isSelected && (
+                    <CheckCircle2 className="w-4 h-4 text-slate-900 flex-shrink-0 mt-1" />
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      
+      {/* Connection Type Specific Configuration */}
+      <div className="border-t border-slate-200 pt-6">
+        {connectionType === 'api' && (
+          <APIConnectionSettings config={config} onChange={onChange} />
+        )}
+        {connectionType === 'database' && (
+          <DatabaseConnectionSettings config={config} onChange={onChange} />
+        )}
+        {connectionType === 'file' && (
+          <FileUploadSettings config={config} onChange={onChange} />
+        )}
+        {connectionType === 'cloud' && (
+          <CloudStorageSettings config={config} onChange={onChange} />
+        )}
+        {connectionType === 'webhook' && (
+          <WebhookConnectionSettings config={config} onChange={onChange} />
+        )}
+        {connectionType === 'oauth' && (
+          <OAuthConnectionSettings config={config} onChange={onChange} />
+        )}
+        {connectionType === 'sftp' && (
+          <SFTPConnectionSettings config={config} onChange={onChange} />
+        )}
+      </div>
+      
+      {/* Test Connection Button */}
+      {connectionType !== 'file' && (
+        <div className="border-t border-slate-200 pt-4">
+          <button
+            onClick={handleTestConnection}
+            disabled={testing}
+            className="w-full px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {testing ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Testing Connection...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                Test Connection
+              </>
+            )}
+          </button>
+          
+          {testResult && (
+            <div className={`mt-3 p-3 rounded-lg flex items-center gap-2 ${
+              testResult.success ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+            }`}>
+              {testResult.success ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <AlertCircle className="w-4 h-4" />
+              )}
+              <p className="text-xs">{testResult.message}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// API Connection Settings
+const APIConnectionSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>API Endpoint URL</Label>
+        <Input
+          value={config.apiUrl || ''}
+          onChange={(e) => onChange('apiUrl', e.target.value)}
+          placeholder="https://api.example.com/suppliers"
+        />
+      </div>
+      <div>
+        <Label>Authentication Method</Label>
+        <Select
+          value={config.authMethod || 'none'}
+          onChange={(e) => onChange('authMethod', e.target.value)}
+        >
+          <option value="none">No Authentication</option>
+          <option value="apiKey">API Key</option>
+          <option value="bearer">Bearer Token</option>
+          <option value="basic">Basic Auth</option>
+          <option value="oauth2">OAuth 2.0</option>
+        </Select>
+      </div>
+      {config.authMethod === 'apiKey' && (
+        <>
+          <div>
+            <Label>API Key</Label>
+            <Input
+              type="password"
+              value={config.apiKey || ''}
+              onChange={(e) => onChange('apiKey', e.target.value)}
+              placeholder="Enter API key"
+            />
+          </div>
+          <div>
+            <Label>Header Name</Label>
+            <Input
+              value={config.apiKeyHeader || 'X-API-Key'}
+              onChange={(e) => onChange('apiKeyHeader', e.target.value)}
+              placeholder="X-API-Key"
+            />
+          </div>
+        </>
+      )}
+      {config.authMethod === 'bearer' && (
+        <div>
+          <Label>Bearer Token</Label>
+          <Input
+            type="password"
+            value={config.bearerToken || ''}
+            onChange={(e) => onChange('bearerToken', e.target.value)}
+            placeholder="Enter bearer token"
+          />
+        </div>
+      )}
+      {config.authMethod === 'basic' && (
+        <>
+          <div>
+            <Label>Username</Label>
+            <Input
+              value={config.basicUsername || ''}
+              onChange={(e) => onChange('basicUsername', e.target.value)}
+              placeholder="Enter username"
+            />
+          </div>
+          <div>
+            <Label>Password</Label>
+            <Input
+              type="password"
+              value={config.basicPassword || ''}
+              onChange={(e) => onChange('basicPassword', e.target.value)}
+              placeholder="Enter password"
+            />
+          </div>
+        </>
+      )}
+      <div>
+        <Label>HTTP Method</Label>
+        <Select
+          value={config.httpMethod || 'GET'}
+          onChange={(e) => onChange('httpMethod', e.target.value)}
+        >
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+          <option value="PUT">PUT</option>
+        </Select>
+      </div>
+      {config.httpMethod === 'POST' && (
+        <div>
+          <Label>Request Body (JSON)</Label>
+          <Textarea
+            value={config.requestBody || ''}
+            onChange={(e) => onChange('requestBody', e.target.value)}
+            placeholder='{"query": "suppliers"}'
+            rows={4}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Database Connection Settings
+const DatabaseConnectionSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Database Type</Label>
+        <Select
+          value={config.dbType || 'postgresql'}
+          onChange={(e) => onChange('dbType', e.target.value)}
+        >
+          <option value="postgresql">PostgreSQL</option>
+          <option value="mysql">MySQL</option>
+          <option value="sqlserver">SQL Server</option>
+          <option value="mongodb">MongoDB</option>
+          <option value="redis">Redis</option>
+        </Select>
+      </div>
+      <div>
+        <Label>Connection String</Label>
+        <Input
+          type="password"
+          value={config.connectionString || ''}
+          onChange={(e) => onChange('connectionString', e.target.value)}
+          placeholder="postgresql://user:password@host:port/database"
+        />
+        <p className="text-xs text-slate-400 mt-1">Or configure individually below</p>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Host</Label>
+          <Input
+            value={config.dbHost || ''}
+            onChange={(e) => onChange('dbHost', e.target.value)}
+            placeholder="localhost"
+          />
+        </div>
+        <div>
+          <Label>Port</Label>
+          <Input
+            type="number"
+            value={config.dbPort || ''}
+            onChange={(e) => onChange('dbPort', e.target.value)}
+            placeholder="5432"
+          />
+        </div>
+      </div>
+      <div>
+        <Label>Database Name</Label>
+        <Input
+          value={config.dbName || ''}
+          onChange={(e) => onChange('dbName', e.target.value)}
+          placeholder="suppliers_db"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Username</Label>
+          <Input
+            value={config.dbUsername || ''}
+            onChange={(e) => onChange('dbUsername', e.target.value)}
+            placeholder="db_user"
+          />
+        </div>
+        <div>
+          <Label>Password</Label>
+          <Input
+            type="password"
+            value={config.dbPassword || ''}
+            onChange={(e) => onChange('dbPassword', e.target.value)}
+            placeholder="••••••••"
+          />
+        </div>
+      </div>
+      <div>
+        <Label>SQL Query</Label>
+        <Textarea
+          value={config.sqlQuery || ''}
+          onChange={(e) => onChange('sqlQuery', e.target.value)}
+          placeholder="SELECT * FROM suppliers WHERE status = 'active'"
+          rows={4}
+        />
+      </div>
+    </div>
+  );
+};
+
+// File Upload Settings
+const FileUploadSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      onChange('fileName', selectedFile.name);
+      onChange('fileType', selectedFile.type);
+    }
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>File Type</Label>
+        <Select
+          value={config.fileType || 'csv'}
+          onChange={(e) => onChange('fileType', e.target.value)}
+        >
+          <option value="csv">CSV</option>
+          <option value="excel">Excel (.xlsx, .xls)</option>
+          <option value="json">JSON</option>
+          <option value="xml">XML</option>
+        </Select>
+      </div>
+      <div>
+        <Label>Upload File</Label>
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-slate-400 transition-colors"
+        >
+          <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+          {file ? (
+            <div>
+              <p className="text-sm font-medium text-slate-900">{file.name}</p>
+              <p className="text-xs text-slate-500 mt-1">{(file.size / 1024).toFixed(2)} KB</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm font-medium text-slate-900">Click to upload</p>
+              <p className="text-xs text-slate-500 mt-1">CSV, Excel, JSON, or XML files</p>
+            </div>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.xlsx,.xls,.json,.xml"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+      </div>
+      {config.fileType === 'csv' && (
+        <div>
+          <Label>CSV Delimiter</Label>
+          <Input
+            value={config.csvDelimiter || ','}
+            onChange={(e) => onChange('csvDelimiter', e.target.value)}
+            placeholder=","
+            maxLength={1}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Cloud Storage Settings
+const CloudStorageSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Cloud Service</Label>
+        <Select
+          value={config.cloudService || 'googledrive'}
+          onChange={(e) => onChange('cloudService', e.target.value)}
+        >
+          <option value="googledrive">Google Drive</option>
+          <option value="dropbox">Dropbox</option>
+          <option value="onedrive">OneDrive</option>
+          <option value="s3">AWS S3</option>
+          <option value="azure">Azure Blob Storage</option>
+          <option value="googlesheets">Google Sheets</option>
+        </Select>
+      </div>
+      <div>
+        <button
+          onClick={() => {
+            // In real implementation, this would trigger OAuth flow
+            alert('OAuth authentication will open in a new window');
+          }}
+          className="w-full px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+        >
+          Connect Account
+        </button>
+      </div>
+      {config.cloudService === 's3' && (
+        <>
+          <div>
+            <Label>AWS Access Key ID</Label>
+            <Input
+              type="password"
+              value={config.s3AccessKey || ''}
+              onChange={(e) => onChange('s3AccessKey', e.target.value)}
+              placeholder="Enter access key"
+            />
+          </div>
+          <div>
+            <Label>AWS Secret Access Key</Label>
+            <Input
+              type="password"
+              value={config.s3SecretKey || ''}
+              onChange={(e) => onChange('s3SecretKey', e.target.value)}
+              placeholder="Enter secret key"
+            />
+          </div>
+          <div>
+            <Label>Bucket Name</Label>
+            <Input
+              value={config.s3Bucket || ''}
+              onChange={(e) => onChange('s3Bucket', e.target.value)}
+              placeholder="my-bucket"
+            />
+          </div>
+          <div>
+            <Label>File Path</Label>
+            <Input
+              value={config.s3Path || ''}
+              onChange={(e) => onChange('s3Path', e.target.value)}
+              placeholder="data/suppliers.csv"
+            />
+          </div>
+        </>
+      )}
+      {(config.cloudService === 'googlesheets' || config.cloudService === 'googledrive') && (
+        <div>
+          <Label>File/Sheet ID</Label>
+          <Input
+            value={config.fileId || ''}
+            onChange={(e) => onChange('fileId', e.target.value)}
+            placeholder="Enter file or sheet ID"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Webhook Connection Settings
+const WebhookConnectionSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  return (
+    <div className="space-y-4">
+      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
+          <div>
+            <p className="text-xs font-medium text-blue-900">Webhook URL</p>
+            <p className="text-[10px] text-blue-700 mt-1">
+              Share this URL with external systems to receive data in real-time
+            </p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <Label>Webhook URL</Label>
+        <div className="flex gap-2">
+          <Input
+            value={config.webhookUrl || 'https://api.spectr.systems/webhook/...'}
+            readOnly
+            className="bg-slate-50"
+          />
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(config.webhookUrl || '');
+            }}
+            className="px-3 py-2 bg-slate-900 text-white text-xs rounded-lg hover:bg-slate-800"
+          >
+            Copy
+          </button>
+        </div>
+      </div>
+      <div>
+        <Label>Expected Data Format</Label>
+        <Select
+          value={config.webhookFormat || 'json'}
+          onChange={(e) => onChange('webhookFormat', e.target.value)}
+        >
+          <option value="json">JSON</option>
+          <option value="xml">XML</option>
+          <option value="form">Form Data</option>
+        </Select>
+      </div>
+    </div>
+  );
+};
+
+// OAuth Connection Settings
+const OAuthConnectionSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Service</Label>
+        <Select
+          value={config.oauthService || 'salesforce'}
+          onChange={(e) => onChange('oauthService', e.target.value)}
+        >
+          <option value="salesforce">Salesforce</option>
+          <option value="servicenow">ServiceNow</option>
+          <option value="custom">Custom OAuth</option>
+        </Select>
+      </div>
+      <div>
+        <button
+          onClick={() => {
+            // In real implementation, this would trigger OAuth flow
+            alert('OAuth authentication will open in a new window');
+          }}
+          className="w-full px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+        >
+          Authorize with {config.oauthService || 'Salesforce'}
+        </button>
+      </div>
+      {config.oauthService === 'custom' && (
+        <>
+          <div>
+            <Label>Authorization URL</Label>
+            <Input
+              value={config.oauthAuthUrl || ''}
+              onChange={(e) => onChange('oauthAuthUrl', e.target.value)}
+              placeholder="https://api.example.com/oauth/authorize"
+            />
+          </div>
+          <div>
+            <Label>Token URL</Label>
+            <Input
+              value={config.oauthTokenUrl || ''}
+              onChange={(e) => onChange('oauthTokenUrl', e.target.value)}
+              placeholder="https://api.example.com/oauth/token"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Client ID</Label>
+              <Input
+                value={config.oauthClientId || ''}
+                onChange={(e) => onChange('oauthClientId', e.target.value)}
+                placeholder="Enter client ID"
+              />
+            </div>
+            <div>
+              <Label>Client Secret</Label>
+              <Input
+                type="password"
+                value={config.oauthClientSecret || ''}
+                onChange={(e) => onChange('oauthClientSecret', e.target.value)}
+                placeholder="Enter client secret"
+              />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// SFTP Connection Settings
+const SFTPConnectionSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Connection Type</Label>
+        <Select
+          value={config.sftpType || 'sftp'}
+          onChange={(e) => onChange('sftpType', e.target.value)}
+        >
+          <option value="sftp">SFTP (Secure)</option>
+          <option value="ftp">FTP</option>
+        </Select>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Host</Label>
+          <Input
+            value={config.sftpHost || ''}
+            onChange={(e) => onChange('sftpHost', e.target.value)}
+            placeholder="ftp.example.com"
+          />
+        </div>
+        <div>
+          <Label>Port</Label>
+          <Input
+            type="number"
+            value={config.sftpPort || (config.sftpType === 'sftp' ? '22' : '21')}
+            onChange={(e) => onChange('sftpPort', e.target.value)}
+            placeholder={config.sftpType === 'sftp' ? '22' : '21'}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Username</Label>
+          <Input
+            value={config.sftpUsername || ''}
+            onChange={(e) => onChange('sftpUsername', e.target.value)}
+            placeholder="Enter username"
+          />
+        </div>
+        <div>
+          <Label>Password</Label>
+          <Input
+            type="password"
+            value={config.sftpPassword || ''}
+            onChange={(e) => onChange('sftpPassword', e.target.value)}
+            placeholder="Enter password"
+          />
+        </div>
+      </div>
+      <div>
+        <Label>Remote File Path</Label>
+        <Input
+          value={config.sftpPath || ''}
+          onChange={(e) => onChange('sftpPath', e.target.value)}
+          placeholder="/data/suppliers.csv"
+        />
+      </div>
+      <div>
+        <Label>Polling Interval</Label>
+        <Select
+          value={config.sftpInterval || 'hourly'}
+          onChange={(e) => onChange('sftpInterval', e.target.value)}
+        >
+          <option value="hourly">Every Hour</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="manual">Manual Only</option>
+        </Select>
+      </div>
+    </div>
+  );
+};
+
+// Spectr Live Data Settings
+const SpectrLiveDataSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>(config.category || 'all');
+  
+  // Dataset categories
+  const categories = [
+    { id: 'all', name: 'All Datasets', count: 24 },
+    { id: 'corporate', name: 'Corporate Intelligence', count: 8 },
+    { id: 'sanctions', name: 'Sanctions & Compliance', count: 5 },
+    { id: 'geographic', name: 'Geographic Intelligence', count: 6 },
+    { id: 'financial', name: 'Financial Data', count: 5 },
+  ];
+  
+  // Available datasets (based on subscriptions)
+  const availableDatasets = [
+    {
+      id: 'corp-registry-global',
+      name: 'Global Corporate Registry',
+      category: 'corporate',
+      description: 'Real-time corporate registration data from 180+ countries',
+      subscription: 'active',
+      updateFrequency: 'Real-time',
+      coverage: '180+ countries',
+      icon: Building2,
+    },
+    {
+      id: 'sanctions-ofac',
+      name: 'OFAC Sanctions List',
+      category: 'sanctions',
+      description: 'US Treasury OFAC sanctions, SDN, and blocked persons',
+      subscription: 'active',
+      updateFrequency: 'Daily',
+      coverage: 'Global',
+      icon: Shield,
+    },
+    {
+      id: 'sanctions-un',
+      name: 'UN Sanctions List',
+      category: 'sanctions',
+      description: 'United Nations consolidated sanctions list',
+      subscription: 'active',
+      updateFrequency: 'Daily',
+      coverage: 'Global',
+      icon: Shield,
+    },
+    {
+      id: 'corp-ownership',
+      name: 'Corporate Ownership Structures',
+      category: 'corporate',
+      description: 'Ultimate beneficial ownership and corporate hierarchies',
+      subscription: 'active',
+      updateFrequency: 'Weekly',
+      coverage: '50+ countries',
+      icon: Network,
+    },
+    {
+      id: 'geo-risk-indicators',
+      name: 'Geographic Risk Indicators',
+      category: 'geographic',
+      description: 'Country-level risk scores, political stability, conflict zones',
+      subscription: 'active',
+      updateFrequency: 'Daily',
+      coverage: '200+ countries',
+      icon: MapPin,
+    },
+    {
+      id: 'port-logistics',
+      name: 'Port & Logistics Intelligence',
+      category: 'geographic',
+      description: 'Port operations, shipping routes, logistics chokepoints',
+      subscription: 'active',
+      updateFrequency: 'Real-time',
+      coverage: 'Global ports',
+      icon: Ship,
+    },
+    {
+      id: 'financial-distress',
+      name: 'Financial Distress Signals',
+      category: 'financial',
+      description: 'Early warning indicators of financial distress, bankruptcies',
+      subscription: 'active',
+      updateFrequency: 'Daily',
+      coverage: 'Global',
+      icon: AlertTriangle,
+    },
+    {
+      id: 'regulatory-actions',
+      name: 'Regulatory Actions Database',
+      category: 'sanctions',
+      description: 'Regulatory enforcement actions, fines, penalties',
+      subscription: 'active',
+      updateFrequency: 'Daily',
+      coverage: 'Global',
+      icon: FileText,
+    },
+    {
+      id: 'supply-chain-mapping',
+      name: 'Supply Chain Network Mapping',
+      category: 'corporate',
+      description: 'Supplier relationships, dependencies, network analysis',
+      subscription: 'pending',
+      updateFrequency: 'Weekly',
+      coverage: 'Global',
+      icon: Network,
+    },
+    {
+      id: 'commodity-prices',
+      name: 'Commodity Price Intelligence',
+      category: 'financial',
+      description: 'Real-time commodity prices, futures, market volatility',
+      subscription: 'pending',
+      updateFrequency: 'Real-time',
+      coverage: 'Global markets',
+      icon: DollarSign,
+    },
+  ];
+  
+  const filteredDatasets = availableDatasets.filter(dataset => {
+    const matchesSearch = dataset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         dataset.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || dataset.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+  
+  const selectedDataset = availableDatasets.find(d => d.id === config.datasetId);
+  const SelectedIcon = selectedDataset?.icon || ShoppingBag;
+  
+  return (
+    <div className="space-y-6">
+      {/* Selected Dataset Display */}
+      {selectedDataset && (
+        <div className="p-4 bg-emerald-50 border-2 border-emerald-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-emerald-600 rounded-lg">
+              <SelectedIcon className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-sm font-semibold text-emerald-900">{selectedDataset.name}</h3>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                  selectedDataset.subscription === 'active'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-amber-500 text-white'
+                }`}>
+                  {selectedDataset.subscription === 'active' ? 'Active' : 'Pending'}
+                </span>
+              </div>
+              <p className="text-xs text-emerald-700 mb-2">{selectedDataset.description}</p>
+              <div className="flex items-center gap-4 text-[10px] text-emerald-600">
+                <span>📊 {selectedDataset.updateFrequency}</span>
+                <span>🌍 {selectedDataset.coverage}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => onChange('datasetId', '')}
+              className="p-1 hover:bg-emerald-100 rounded transition-colors"
+            >
+              <X className="w-4 h-4 text-emerald-700" />
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Search */}
+      <div>
+        <Label>Search Datasets</Label>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name or description..."
+            className="pl-10"
+          />
+        </div>
+      </div>
+      
+      {/* Category Filter */}
+      <div>
+        <Label>Category</Label>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategory(category.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                selectedCategory === category.id
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              {category.name} ({category.count})
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Dataset List */}
+      <div>
+        <Label>Available Datasets</Label>
+        <div className="space-y-2 mt-2 max-h-96 overflow-y-auto">
+          {filteredDatasets.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 text-sm">
+              <p>No datasets found</p>
+            </div>
+          ) : (
+            filteredDatasets.map((dataset) => {
+              const DatasetIcon = dataset.icon;
+              const isSelected = config.datasetId === dataset.id;
+              
+              return (
+                <button
+                  key={dataset.id}
+                  onClick={() => onChange('datasetId', dataset.id)}
+                  className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                    isSelected
+                      ? 'border-slate-900 bg-slate-50'
+                      : dataset.subscription === 'active'
+                      ? 'border-emerald-200 hover:border-emerald-300 bg-white'
+                      : 'border-amber-200 hover:border-amber-300 bg-amber-50/30'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg flex-shrink-0 ${
+                      isSelected
+                        ? 'bg-slate-900 text-white'
+                        : dataset.subscription === 'active'
+                        ? 'bg-emerald-100 text-emerald-600'
+                        : 'bg-amber-100 text-amber-600'
+                    }`}>
+                      <DatasetIcon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-semibold text-slate-900">{dataset.name}</h4>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                          dataset.subscription === 'active'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-amber-500 text-white'
+                        }`}>
+                          {dataset.subscription === 'active' ? 'Subscribed' : 'Not Subscribed'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 mb-2">{dataset.description}</p>
+                      <div className="flex items-center gap-4 text-[10px] text-slate-500">
+                        <span>🔄 {dataset.updateFrequency}</span>
+                        <span>🌍 {dataset.coverage}</span>
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <CheckCircle2 className="w-5 h-5 text-slate-900 flex-shrink-0" />
+                    )}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+      
+      {/* Subscription Notice */}
+      {selectedDataset && selectedDataset.subscription === 'pending' && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+            <div>
+              <p className="text-xs font-medium text-amber-900 mb-1">Subscription Required</p>
+              <p className="text-[10px] text-amber-700">
+                This dataset requires an active subscription. Contact your administrator to enable access.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FormSettings: React.FC<{
+  config: any;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ config, onChange }) => {
+  const fields = config?.fields || [];
+  const formData = config?.formData || {};
+  const [showSaved, setShowSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('company');
+  
+  // Group fields by tab
+  const fieldsByTab = fields.reduce((acc: any, field: any) => {
+    const tab = field.tab || 'company';
+    if (!acc[tab]) {
+      acc[tab] = [];
+    }
+    acc[tab].push(field);
+    return acc;
+  }, {});
+  
+  const tabs = Object.keys(fieldsByTab);
+  
+  const updateFormData = (fieldName: string, value: unknown) => {
+    const newFormData = { ...formData, [fieldName]: value };
+    onChange('formData', newFormData);
+  };
+  
+  const handleSave = () => {
+    // Explicitly save the formData
+    onChange('formData', formData);
+    setShowSaved(true);
+    setTimeout(() => setShowSaved(false), 2000);
+  };
+  
+  const renderField = (field: any, index: number) => {
+    if (field.type === 'country-select') {
+      return (
+        <div key={index} className="space-y-2">
+          <Label>
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </Label>
+          <Select
+            value={formData[field.name] || ''}
+            onChange={(e) => updateFormData(field.name, e.target.value)}
+            className="w-full"
+          >
+            <option value="">Select a country</option>
+            {COUNTRIES.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.flag} {country.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      );
+    }
+    
+    if (field.type === 'select' && field.options) {
+      return (
+        <div key={index} className="space-y-2">
+          <Label>
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </Label>
+          <Select
+            value={formData[field.name] || ''}
+            onChange={(e) => updateFormData(field.name, e.target.value)}
+            className="w-full"
+          >
+            <option value="">Select an option</option>
+            {field.options.map((option: string) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </Select>
+        </div>
+      );
+    }
+    
+    if (field.type === 'textarea') {
+      return (
+        <div key={index} className="space-y-2">
+          <Label>
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </Label>
+          <Textarea
+            value={formData[field.name] || ''}
+            onChange={(e) => updateFormData(field.name, e.target.value)}
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+            required={field.required}
+            rows={4}
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div key={index} className="space-y-2">
+        <Label>
+          {field.label}
+          {field.required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
+        <Input
+          type={field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : 'text'}
+          value={formData[field.name] || ''}
+          onChange={(e) => updateFormData(field.name, e.target.value)}
+          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+          required={field.required}
+        />
+      </div>
+    );
+  };
+  
+  return (
+    <div className="space-y-6">
+      {/* Tabs */}
+      {tabs.length > 1 && (
+        <div className="flex items-center gap-6 border-b border-slate-200">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-all uppercase tracking-tight relative group pb-2"
+            >
+              <span className="relative capitalize">
+                {tab === 'company' ? 'Company Information' : tab === 'product' ? 'Product / Service' : tab === 'volume' ? 'Supply Volume & Dependency' : tab}
+                {activeTab === tab && (
+                  <span className="absolute -bottom-2 left-0 w-full h-0.5 bg-slate-900 transition-all duration-300"></span>
+                )}
+                {activeTab !== tab && (
+                  <span className="absolute -bottom-2 left-0 w-0 h-0.5 bg-slate-900 transition-all duration-300 group-hover:w-full"></span>
+                )}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {/* Form Data Input Section */}
+      {fields.length > 0 ? (
+        <div className="space-y-4">
+          {(fieldsByTab[activeTab] || []).map((field: any, index: number) => renderField(field, index))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-slate-400 text-sm">
+          <p>No form fields configured</p>
+        </div>
+      )}
+      
+      {/* Save Button */}
+      {fields.length > 0 && (
+        <div className="pt-4 border-t border-slate-200">
+          <button
+            onClick={handleSave}
+            className="w-full px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 transition-all"
+          >
+            {showSaved ? 'Saved!' : 'Save'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AIAgentSettings: React.FC<{
   config: AIAgentConfig;

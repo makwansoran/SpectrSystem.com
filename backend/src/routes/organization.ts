@@ -5,10 +5,13 @@
 
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { db } from '../database';
+import { db, getUserOrganization, updateOrganizationPlan } from '../database';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Import PostgreSQL functions if using PostgreSQL
+const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
 
 /**
  * Middleware to verify JWT token
@@ -66,12 +69,17 @@ router.put('/plan', authenticate, async (req, res) => {
     }
 
     // Get user's organization
-    const userOrg = db.prepare(`
-      SELECT o.id, o.plan
-      FROM organizations o
-      JOIN user_organizations uo ON o.id = uo.organization_id
-      WHERE uo.user_id = ?
-    `).get(userId) as any;
+    let userOrg;
+    if (dbType === 'postgresql' && getUserOrganization) {
+      userOrg = await getUserOrganization(userId);
+    } else {
+      userOrg = db.prepare(`
+        SELECT o.id, o.plan
+        FROM organizations o
+        JOIN user_organizations uo ON o.id = uo.organization_id
+        WHERE uo.user_id = ?
+      `).get(userId) as any;
+    }
 
     if (!userOrg) {
       return res.status(404).json({
@@ -82,18 +90,16 @@ router.put('/plan', authenticate, async (req, res) => {
 
     // Update organization plan
     const now = new Date().toISOString();
-    const updateResult = db.prepare('UPDATE organizations SET plan = ?, updated_at = ? WHERE id = ?').run(
-      plan,
-      now,
-      userOrg.id
-    );
-
-    // Verify the update was successful
-    const updatedOrg = db.prepare('SELECT plan FROM organizations WHERE id = ?').get(userOrg.id) as any;
-    
-    console.log(`✅ Plan updated to "${plan}" for organization ${userOrg.id}`);
-    console.log(`   Verified: Organization plan is now "${updatedOrg?.plan}"`);
-    console.log(`   Rows affected: ${updateResult.changes}`);
+    if (dbType === 'postgresql' && updateOrganizationPlan) {
+      await updateOrganizationPlan(userOrg.id, plan);
+      console.log(`✅ Plan updated to "${plan}" for organization ${userOrg.id}`);
+    } else {
+      const updateResult = db.prepare('UPDATE organizations SET plan = ?, updated_at = ? WHERE id = ?').run(plan, now, userOrg.id);
+      const updatedOrg = db.prepare('SELECT plan FROM organizations WHERE id = ?').get(userOrg.id) as any;
+      console.log(`✅ Plan updated to "${plan}" for organization ${userOrg.id}`);
+      console.log(`   Verified: Organization plan is now "${updatedOrg?.plan}"`);
+      console.log(`   Rows affected: ${updateResult.changes}`);
+    }
 
     res.json({
       success: true,
@@ -119,12 +125,17 @@ router.get('/', authenticate, async (req, res) => {
     const userId = (req as any).userId;
 
     // Get user's organization
-    const userOrg = db.prepare(`
-      SELECT o.*, uo.role
-      FROM organizations o
-      JOIN user_organizations uo ON o.id = uo.organization_id
-      WHERE uo.user_id = ?
-    `).get(userId) as any;
+    let userOrg;
+    if (dbType === 'postgresql' && getUserOrganization) {
+      userOrg = await getUserOrganization(userId);
+    } else {
+      userOrg = db.prepare(`
+        SELECT o.*, uo.role
+        FROM organizations o
+        JOIN user_organizations uo ON o.id = uo.organization_id
+        WHERE uo.user_id = ?
+      `).get(userId) as any;
+    }
 
     if (!userOrg) {
       return res.status(404).json({
@@ -160,12 +171,17 @@ router.get('/usage', authenticate, async (req, res) => {
     const userId = (req as any).userId;
 
     // Get user's organization
-    const userOrg = db.prepare(`
-      SELECT o.id, o.plan
-      FROM organizations o
-      JOIN user_organizations uo ON o.id = uo.organization_id
-      WHERE uo.user_id = ?
-    `).get(userId) as any;
+    let userOrg;
+    if (dbType === 'postgresql' && getUserOrganization) {
+      userOrg = await getUserOrganization(userId);
+    } else {
+      userOrg = db.prepare(`
+        SELECT o.id, o.plan
+        FROM organizations o
+        JOIN user_organizations uo ON o.id = uo.organization_id
+        WHERE uo.user_id = ?
+      `).get(userId) as any;
+    }
 
     if (!userOrg) {
       return res.status(404).json({
@@ -215,39 +231,54 @@ router.get('/usage', authenticate, async (req, res) => {
     const limits = planLimits[plan] || planLimits.free;
 
     // Get actual usage from database
-    const workflowCount = db.prepare(`
-      SELECT COUNT(*) as count
-      FROM workflows
-      WHERE organization_id = ?
-    `).get(userOrg.id) as any;
+    let workflowCount, executionCount, storageBytes, intelligenceProjectCount, findingsCount;
+    
+    if (dbType === 'postgresql' && db) {
+      // Note: workflows table doesn't have organization_id, so we'll count all workflows for now
+      const workflowResult = await db.query('SELECT COUNT(*) as count FROM workflows');
+      workflowCount = { count: parseInt(workflowResult.rows[0].count) };
 
-    const executionCount = db.prepare(`
-      SELECT COUNT(*) as count
-      FROM executions
-      WHERE organization_id = ?
-        AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
-    `).get(userOrg.id) as any;
+      // Executions for current month (PostgreSQL date format)
+      const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+      const execResult = await db.query(
+        "SELECT COUNT(*) as count FROM executions WHERE start_time LIKE $1",
+        [`${currentMonth}%`]
+      );
+      executionCount = { count: parseInt(execResult.rows[0].count) };
 
-    // Calculate storage (simplified - in a real app, you'd sum file sizes)
-    const storageBytes = db.prepare(`
-      SELECT COALESCE(SUM(LENGTH(data)), 0) as total_bytes
-      FROM data_store
-      WHERE organization_id = ?
-    `).get(userOrg.id) as any;
+      // Storage (simplified)
+      const storageResult = await db.query(
+        "SELECT COALESCE(SUM(LENGTH(value::text)), 0) as total_bytes FROM data_store"
+      );
+      storageBytes = { total_bytes: parseInt(storageResult.rows[0].total_bytes) || 0 };
+
+      // Intelligence cases
+      const intResult = await db.query('SELECT COUNT(*) as count FROM intelligence_cases');
+      intelligenceProjectCount = { count: parseInt(intResult.rows[0].count) };
+
+      // Findings for current month
+      const findingsResult = await db.query(
+        "SELECT COUNT(*) as count FROM intelligence_findings WHERE created_at LIKE $1",
+        [`${currentMonth}%`]
+      );
+      findingsCount = { count: parseInt(findingsResult.rows[0].count) };
+    } else {
+      workflowCount = db.prepare(`SELECT COUNT(*) as count FROM workflows`).get() as any;
+      executionCount = db.prepare(`
+        SELECT COUNT(*) as count
+        FROM executions
+        WHERE strftime('%Y-%m', start_time) = strftime('%Y-%m', 'now')
+      `).get() as any;
+      storageBytes = db.prepare(`SELECT COALESCE(SUM(LENGTH(value)), 0) as total_bytes FROM data_store`).get() as any;
+      intelligenceProjectCount = db.prepare(`SELECT COUNT(*) as count FROM intelligence_cases`).get() as any;
+      findingsCount = db.prepare(`
+        SELECT COUNT(*) as count
+        FROM intelligence_findings
+        WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+      `).get() as any;
+    }
+
     const storageGB = (storageBytes?.total_bytes || 0) / (1024 * 1024 * 1024);
-
-    const intelligenceProjectCount = db.prepare(`
-      SELECT COUNT(*) as count
-      FROM intelligence_cases
-      WHERE organization_id = ?
-    `).get(userOrg.id) as any;
-
-    const findingsCount = db.prepare(`
-      SELECT COUNT(*) as count
-      FROM intelligence_findings
-      WHERE organization_id = ?
-        AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
-    `).get(userOrg.id) as any;
 
     // API calls would be tracked separately - for now, use execution count as proxy
     const apiCallsCount = executionCount?.count || 0;

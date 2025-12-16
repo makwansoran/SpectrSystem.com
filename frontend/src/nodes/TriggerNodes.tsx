@@ -45,3 +45,40 @@ export const EmailTriggerNode: React.FC<NodeProps<CustomNodeData>> = memo((props
 });
 
 EmailTriggerNode.displayName = 'EmailTriggerNode';
+
+export const EntitySignupTriggerNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+
+EntitySignupTriggerNode.displayName = 'EntitySignupTriggerNode';
+
+export const ExternalAlertTriggerNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+
+ExternalAlertTriggerNode.displayName = 'ExternalAlertTriggerNode';
+
+export const PeriodicDataPullTriggerNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  const config = props.data.config as ScheduleConfig;
+  return (
+    <BaseNode {...props}>
+      {config?.cronExpression && (
+        <span className="font-mono text-[11px]">{config.cronExpression}</span>
+      )}
+    </BaseNode>
+  );
+});
+
+PeriodicDataPullTriggerNode.displayName = 'PeriodicDataPullTriggerNode';
+
+export const PurchasedDataInputNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+
+PurchasedDataInputNode.displayName = 'PurchasedDataInputNode';
+
+export const ConnectedDataInputNode: React.FC<NodeProps<CustomNodeData>> = memo((props) => {
+  return <BaseNode {...props} />;
+});
+
+ConnectedDataInputNode.displayName = 'ConnectedDataInputNode';
