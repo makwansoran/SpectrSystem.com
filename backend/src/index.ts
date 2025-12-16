@@ -232,9 +232,12 @@ async function getTableList(): Promise<string[]> {
 
 // 404 handler
 app.use((req, res) => {
+  console.log(`[404] Route not found: ${req.method} ${req.path} (original: ${req.originalUrl})`);
   res.status(404).json({
     success: false,
-    error: 'Endpoint not found'
+    error: 'Endpoint not found',
+    path: req.path,
+    method: req.method,
   });
 });
 
@@ -266,6 +269,8 @@ app.listen(PORT, () => {
 ║   • DELETE /api/workflows/:id       - Delete workflow     ║
 ║   • POST   /api/workflows/:id/execute - Execute workflow  ║
 ║   • GET    /api/executions          - List executions     ║
+║   • GET    /api/agent/test          - Test agent route    ║
+║   • POST   /api/agent/chat          - Agent chat          ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);

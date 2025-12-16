@@ -13,6 +13,18 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 /**
+ * Test endpoint to verify route is accessible
+ * GET /api/agent/test
+ */
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Agent route is working',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+/**
  * Middleware to verify JWT token
  */
 const authenticate = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -48,6 +60,13 @@ const authenticate = (req: express.Request, res: express.Response, next: express
  * POST /api/agent/chat
  */
 router.post('/chat', authenticate, async (req, res) => {
+  console.log('[Agent Chat] Received request:', {
+    method: req.method,
+    path: req.path,
+    url: req.url,
+    hasMessage: !!req.body.message,
+  });
+  
   try {
     const { message, conversationHistory = [] } = req.body;
 
@@ -133,14 +152,15 @@ Respond naturally in a conversational manner.`;
 
     // Extract response text
     let responseText = '';
-    if (typeof result.response === 'string') {
-      responseText = result.response;
-    } else if (result.response && typeof result.response === 'object') {
+    const resultResponse = result.response;
+    if (typeof resultResponse === 'string') {
+      responseText = resultResponse;
+    } else if (resultResponse && typeof resultResponse === 'object') {
       // If response is an object, try to extract meaningful text
-      if ('response' in result.response && typeof result.response.response === 'string') {
-        responseText = result.response.response;
+      if ('response' in resultResponse && typeof (resultResponse as any).response === 'string') {
+        responseText = (resultResponse as any).response;
       } else {
-        responseText = JSON.stringify(result.response, null, 2);
+        responseText = JSON.stringify(resultResponse, null, 2);
       }
     } else {
       responseText = 'I received your message, but I\'m having trouble processing the response.';
