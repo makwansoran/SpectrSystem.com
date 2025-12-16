@@ -79,4 +79,3 @@ Write-Host "  ssh -i `"$SSHKey`" $User@${ServerIP}" -ForegroundColor White
 Write-Host "  cd ~/chainCommands/backend" -ForegroundColor White
 Write-Host "  echo 'ANTHROPIC_API_KEY=your-api-key' >> .env" -ForegroundColor White
 Write-Host "  pm2 restart spectr-backend" -ForegroundColor White
-

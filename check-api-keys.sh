@@ -66,4 +66,3 @@ echo "  1. AI_API_KEY from .env or environment"
 echo "  2. ANTHROPIC_API_KEY from .env or environment"
 echo ""
 echo "If neither is set, the agent chat will return an error."
-
