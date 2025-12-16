@@ -63,7 +63,7 @@ async function callAnthropic(config: AIAgentConfig, userPrompt: string): Promise
       {
         headers: {
           'x-api-key': config.apiKey,
-          'anthropic-version': '2024-06-20',
+          'anthropic-version': '2023-06-01',
           'Content-Type': 'application/json',
         },
         timeout: 60000
