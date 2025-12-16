@@ -48,28 +48,40 @@ async function callAnthropic(config: AIAgentConfig, userPrompt: string): Promise
     throw new Error('Anthropic API key is required');
   }
 
-  const response = await axios.post(
-    'https://api.anthropic.com/v1/messages',
-    {
-      model: config.model,
-      max_tokens: config.maxTokens || 1000,
-      temperature: config.temperature ?? 0.7,
-      system: config.systemPrompt || 'You are a helpful assistant.',
-      messages: [
-        { role: 'user', content: userPrompt }
-      ],
-    },
-    {
-      headers: {
-        'x-api-key': config.apiKey,
-        'anthropic-version': '2024-06-20',
-        'Content-Type': 'application/json',
+  try {
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: config.model,
+        max_tokens: config.maxTokens || 1000,
+        temperature: config.temperature ?? 0.7,
+        system: config.systemPrompt || 'You are a helpful assistant.',
+        messages: [
+          { role: 'user', content: userPrompt }
+        ],
       },
-      timeout: 60000
-    }
-  );
+      {
+        headers: {
+          'x-api-key': config.apiKey,
+          'anthropic-version': '2024-06-20',
+          'Content-Type': 'application/json',
+        },
+        timeout: 60000
+      }
+    );
 
-  return response.data.content[0].text;
+    if (!response.data?.content || !response.data.content[0]?.text) {
+      throw new Error(`Invalid response from Anthropic API: ${JSON.stringify(response.data)}`);
+    }
+
+    return response.data.content[0].text;
+  } catch (error: any) {
+    if (error.response) {
+      const errorMessage = error.response.data?.error?.message || error.response.data?.message || JSON.stringify(error.response.data);
+      throw new Error(`Anthropic API error (${error.response.status}): ${errorMessage}`);
+    }
+    throw error;
+  }
 }
 
 async function callOllama(config: AIAgentConfig, userPrompt: string): Promise<string> {
@@ -155,7 +167,13 @@ export const executeAIAgent: NodeExecutor<AIAgentConfig> = async (
       provider: config.provider
     };
   } catch (error: any) {
-    throw new Error(`AI Agent failed: ${error.message}`);
+    const errorMessage = error.message || 'Unknown error';
+    console.error(`AI Agent error details:`, {
+      message: errorMessage,
+      stack: error.stack,
+      response: error.response?.data
+    });
+    throw new Error(`AI Agent failed: ${errorMessage}`);
   }
 };
 
