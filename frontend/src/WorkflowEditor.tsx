@@ -698,21 +698,9 @@ interface LoadingScreenProps {
   message?: string;
 }
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({ message = 'Loading...' }) => (
-  <div className="flex flex-col items-center justify-center h-full bg-white">
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center gap-4"
-    >
-      <div className="relative">
-        <div className="w-16 h-16 border border-slate-300/50 bg-white flex items-center justify-center">
-          <Zap className="w-8 h-8 text-slate-900" />
-        </div>
-        <Loader2 className="absolute -bottom-1 -right-1 w-6 h-6 text-slate-900 animate-spin" />
-      </div>
-      <p className="text-xs font-medium text-slate-900 uppercase tracking-wide font-mono">{message}</p>
-    </motion.div>
+const LoadingScreen: React.FC<LoadingScreenProps> = () => (
+  <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
+    <div className="w-24 h-24 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
   </div>
 );
 

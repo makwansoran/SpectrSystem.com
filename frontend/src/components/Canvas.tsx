@@ -233,13 +233,17 @@ const Canvas: React.FC = () => {
 
         {isEmpty && (
           <Panel position="top-center">
-            <div className="flex flex-col items-center gap-3 px-6 py-5 mt-24 bg-white/80 backdrop-blur-md border border-slate-300/50 rounded-lg shadow-lg">
+            <div className="flex flex-col items-center gap-4 px-8 py-6 mt-24 bg-white/80 backdrop-blur-md border border-slate-300/50 rounded-lg shadow-lg max-w-md">
               <div className="w-12 h-12 border border-slate-300/50 bg-white/60 backdrop-blur-sm rounded-lg flex items-center justify-center">
                 <MousePointer2 className="w-6 h-6 text-slate-900" />
               </div>
-              <div className="text-center">
-                <p className="text-xs font-medium text-slate-900 tracking-tight uppercase">Drag nodes here</p>
-                <p className="text-xs text-slate-600 mt-1 font-mono">Start with a trigger</p>
+              <div className="text-center space-y-2">
+                <p className="text-sm font-normal text-slate-900" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+                  Build your workflow by dragging nodes from the left panel
+                </p>
+                <p className="text-xs font-normal text-slate-600" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+                  Start with a trigger node, then connect actions and decisions to create your automation
+                </p>
               </div>
             </div>
           </Panel>
