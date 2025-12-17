@@ -574,10 +574,10 @@ const HomePage: React.FC = () => {
                             </div>
                           </div>
                           <Link
-                            to="/pricing"
+                            to="/store"
                             className="text-xs font-medium text-slate-900 hover:text-slate-700 transition-colors underline"
                           >
-                            Upgrade Plan
+                            View Store
                           </Link>
                         </div>
                       </div>

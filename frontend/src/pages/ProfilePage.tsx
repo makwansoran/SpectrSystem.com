@@ -321,22 +321,12 @@ const ProfilePage: React.FC = () => {
                   >
                     {organization.plan}
                   </div>
-                  {organization.plan === 'free' && (
-                    <Link
-                      to="/pricing"
-                      className="block w-full text-center px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
-                    >
-                      Upgrade Plan
-                    </Link>
-                  )}
-                  {organization.plan !== 'free' && organization.plan !== 'enterprise' && (
-                    <Link
-                      to="/pricing"
-                      className="block w-full text-center px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
-                    >
-                      Change Plan
-                    </Link>
-                  )}
+                  <Link
+                    to="/store"
+                    className="block w-full text-center px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
+                  >
+                    View Store
+                  </Link>
                 </div>
               )}
             </motion.div>

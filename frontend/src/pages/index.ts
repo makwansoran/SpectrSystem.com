@@ -3,7 +3,7 @@
  */
 
 export { default as LandingPage } from './LandingPage';
-export { default as PricingPage } from './PricingPage';
+export { default as PublicStorePage } from './PublicStorePage';
 export { default as SignInPage } from './SignInPage';
 export { default as SignUpPage } from './SignUpPage';
 export { default as VerifyEmailPage } from './VerifyEmailPage';

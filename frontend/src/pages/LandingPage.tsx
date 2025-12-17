@@ -465,19 +465,19 @@ const LandingPage: React.FC = () => {
                 to="/pricing"
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Pricing
-              </Link>
-              <Link
-                to="/signin"
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Sign In
+                Store
               </Link>
               <Link
                 to="/signup"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Sign Up
+              </Link>
+              <Link
+                to="/app"
                 className="px-6 py-2.5 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
               >
-                Get Started
+                Open Sandbox
               </Link>
             </div>
 
@@ -505,16 +505,16 @@ const LandingPage: React.FC = () => {
                 Resources
               </a>
               <Link to="/pricing" className="block text-sm text-gray-600 hover:text-gray-900">
-                Pricing
+                Store
               </Link>
-              <Link to="/signin" className="block text-sm text-gray-600 hover:text-gray-900">
-                Sign In
+              <Link to="/signup" className="block text-sm text-gray-600 hover:text-gray-900">
+                Sign Up
               </Link>
               <Link
-                to="/signup"
+                to="/app"
                 className="block px-6 py-2.5 bg-gray-900 text-white text-sm font-medium text-center"
               >
-                Get Started
+                Open Sandbox
               </Link>
             </div>
           </div>
@@ -545,10 +545,10 @@ const LandingPage: React.FC = () => {
               </h1>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                  to="/signup"
+                  to="/app"
                   className="px-8 py-4 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors inline-flex items-center gap-2"
                 >
-                  Get Started
+                  Open Sandbox
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <a
@@ -945,24 +945,24 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 0.8 }}
           >
             <h2 className="text-4xl lg:text-6xl font-light tracking-tight mb-6 text-gray-900">
-              Ready to get started?
+              Ready to open sandbox?
             </h2>
             <p className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto">
               Join organizations around the world using SPECTR SYSTEM to transform their operations.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                to="/signup"
+                to="/app"
                 className="px-8 py-4 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors inline-flex items-center gap-2"
               >
-                Get Started
+                Open Sandbox
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 to="/pricing"
                 className="px-8 py-4 border border-gray-300 text-gray-900 text-sm font-medium hover:border-gray-400 hover:bg-gray-50 transition-colors"
               >
-                View Pricing
+                View Store
               </Link>
             </div>
           </motion.div>

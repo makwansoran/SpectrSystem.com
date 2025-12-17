@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { LandingPage, PricingPage, SignInPage, SignUpPage, HomePage, SolutionsPage } from './pages';
+import { LandingPage, SignInPage, SignUpPage, HomePage, SolutionsPage } from './pages';
 import SolutionsIndexPage from './pages/SolutionsIndexPage';
 import DataPage from './pages/DataPage';
 import ScrollToTop from './components/ScrollToTop';
@@ -24,6 +24,7 @@ import OrganizationPage from './pages/OrganizationPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import StorePage from './pages/StorePage';
+import PublicStorePage from './pages/PublicStorePage';
 import DataPackDetailPage from './pages/DataPackDetailPage';
 import UsagePage from './pages/UsagePage';
 
@@ -33,7 +34,8 @@ const App: React.FC = () => {
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/pricing" element={<PublicStorePage />} />
+        <Route path="/store" element={<StorePage />} />
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -50,7 +52,6 @@ const App: React.FC = () => {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
         <Route path="/organization" element={<OrganizationPage />} />
-        <Route path="/store" element={<StorePage />} />
         <Route path="/store/:packId" element={<DataPackDetailPage />} />
         <Route path="/terms" element={<TermsOfServicePage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />

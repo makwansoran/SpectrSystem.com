@@ -195,10 +195,10 @@ const UsagePage: React.FC = () => {
                   </div>
                 </div>
                 <Link
-                  to="/pricing"
+                  to="/store"
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors"
                 >
-                  {organization.plan === 'free' ? 'Upgrade Plan' : 'Change Plan'}
+                  View Store
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>

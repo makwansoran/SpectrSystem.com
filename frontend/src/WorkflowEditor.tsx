@@ -24,7 +24,7 @@ import clsx from 'clsx';
 
 import { Canvas, TopNav, BottomPanel, NodePalette } from './components';
 import NodeConfigurationModal from './components/NodeConfigurationModal';
-import ProjectTemplateModal, { type ProjectTemplate } from './components/ProjectTemplateModal';
+import CreateAccountModal from './components/CreateAccountModal';
 import DashboardDesigner, { type DashboardWidget } from './components/DashboardDesigner';
 import DashboardView from './components/DashboardView';
 import { useWorkflowStore } from './stores/workflowStore';
@@ -48,8 +48,8 @@ const WorkflowEditor: React.FC = () => {
   const [openTabs, setOpenTabs] = useState<WorkflowTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [nodePaletteOpen, setNodePaletteOpen] = useState(true);
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [hasShownTemplateModal, setHasShownTemplateModal] = useState(false);
+  const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
+  const [hasShownCreateAccountModal, setHasShownCreateAccountModal] = useState(false);
   const tabsInitializedRef = useRef(false);
   const workflowLoadingRef = useRef<string | null>(null);
 
@@ -124,18 +124,18 @@ const WorkflowEditor: React.FC = () => {
     checkHealth();
   }, [fetchWorkflows, loadWorkflow, urlWorkflowId]);
 
-  // Show template modal on first visit to /app without workflowId
+  // Show create account modal on first visit to /app without workflowId
   useEffect(() => {
-    if (!urlWorkflowId && !hasShownTemplateModal && isApiHealthy && !isCheckingHealth) {
-      setShowTemplateModal(true);
-      setHasShownTemplateModal(true);
+    if (!urlWorkflowId && !hasShownCreateAccountModal && isApiHealthy && !isCheckingHealth) {
+      setShowCreateAccountModal(true);
+      setHasShownCreateAccountModal(true);
     }
-  }, [urlWorkflowId, hasShownTemplateModal, isApiHealthy, isCheckingHealth]);
+  }, [urlWorkflowId, hasShownCreateAccountModal, isApiHealthy, isCheckingHealth]);
 
   // Tabs are completely user-controlled - NO automatic creation based on workflow state
   // Only initialize with empty tabs on first load if no tabs exist
   useEffect(() => {
-    if (!urlWorkflowId && openTabs.length === 0 && !showTemplateModal && !tabsInitializedRef.current) {
+    if (!urlWorkflowId && openTabs.length === 0 && !showCreateAccountModal && !tabsInitializedRef.current) {
       tabsInitializedRef.current = true;
       const tempId = `new-${Date.now()}`;
       const workflowTab: WorkflowTab = {
@@ -153,7 +153,7 @@ const WorkflowEditor: React.FC = () => {
       setOpenTabs(ensureNoDuplicates([workflowTab, dashboardTab]));
       setActiveTabId(workflowTab.id);
     }
-  }, [urlWorkflowId, showTemplateModal, openTabs.length]); // Only run once on mount if no URL workflow
+  }, [urlWorkflowId, showCreateAccountModal, openTabs.length]); // Only run once on mount if no URL workflow
 
   // Handle tab click
   const handleTabClick = async (tabId: string) => {
@@ -444,11 +444,14 @@ const WorkflowEditor: React.FC = () => {
           })()}
         </div>
 
-        {/* Project Template Modal */}
-        <ProjectTemplateModal
-          isOpen={showTemplateModal}
-          onClose={() => setShowTemplateModal(false)}
-          onSelectTemplate={handleTemplateSelect}
+        {/* Create Account Modal */}
+        <CreateAccountModal
+          isOpen={showCreateAccountModal}
+          onClose={() => setShowCreateAccountModal(false)}
+          onSuccess={() => {
+            // After successful account creation, refresh workflows
+            fetchWorkflows();
+          }}
         />
       </div>
     </ReactFlowProvider>

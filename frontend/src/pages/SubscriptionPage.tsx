@@ -133,14 +133,12 @@ const SubscriptionPage: React.FC = () => {
               <div className="h-4 w-px bg-slate-300" />
               <h1 className="text-xl font-semibold text-slate-900">Subscription & Usage</h1>
             </div>
-            {plan !== 'enterprise' && (
-              <Link
-                to="/pricing"
-                className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                Upgrade Plan
-              </Link>
-            )}
+            <Link
+              to="/store"
+              className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              View Store
+            </Link>
           </div>
         </div>
       </header>
@@ -179,14 +177,12 @@ const SubscriptionPage: React.FC = () => {
                   </div>
                 ))}
               </div>
-              {plan !== 'enterprise' && (
-                <Link
-                  to="/pricing"
-                  className="block w-full text-center px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
-                >
-                  Upgrade Plan
-                </Link>
-              )}
+              <Link
+                to="/store"
+                className="block w-full text-center px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
+              >
+                View Store
+              </Link>
             </motion.div>
           </div>
 
