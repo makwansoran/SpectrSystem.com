@@ -21,7 +21,6 @@ import {
   Zap,
   Eye,
   Folder,
-  Brain,
   User,
   Settings,
   LogOut,
@@ -32,7 +31,6 @@ import clsx from 'clsx';
 import { useWorkflowStore } from '../stores/workflowStore';
 import { useUserStore } from '../stores/userStore';
 import { X } from 'lucide-react';
-import AgentChat from './AgentChat';
 
 const TopNav: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +61,6 @@ const TopNav: React.FC = () => {
   const [tempName, setTempName] = useState(workflowName);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showAgentChat, setShowAgentChat] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -221,17 +218,6 @@ const TopNav: React.FC = () => {
       {/* Right - Actions */}
       <div className="flex items-center gap-6">
         <button
-          onClick={() => setShowAgentChat(true)}
-          className="text-xs font-medium text-slate-900 hover:text-slate-900 transition-all uppercase tracking-tight relative group inline-flex items-center gap-1.5"
-          title="Agent"
-        >
-          <Brain className="w-3.5 h-3.5" />
-          <span className="relative">
-            Agent
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-slate-900 transition-all duration-300 group-hover:w-full"></span>
-          </span>
-        </button>
-        <button
           onClick={async () => {
             // Toggle bottom panel
             if (bottomPanelOpen && bottomPanelView === 'execution') {
@@ -264,6 +250,16 @@ const TopNav: React.FC = () => {
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-slate-900 transition-all duration-300 group-hover:w-full"></span>
           </span>
         </button>
+        <Link
+          to="/datasets"
+          className="text-xs font-medium text-slate-900 hover:text-slate-900 transition-all uppercase tracking-tight relative group inline-flex items-center gap-1.5"
+        >
+          <Database className="w-3.5 h-3.5" />
+          <span className="relative">
+            Datasets
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-slate-900 transition-all duration-300 group-hover:w-full"></span>
+          </span>
+        </Link>
         <Link
           to="/home"
           className="text-xs font-medium text-slate-900 hover:text-slate-900 transition-all uppercase tracking-tight relative group"
@@ -437,9 +433,6 @@ const TopNav: React.FC = () => {
 
       {/* Workflow List Modal */}
     </header>
-
-    {/* Agent Chat Sidebar */}
-    <AgentChat isOpen={showAgentChat} onClose={() => setShowAgentChat(false)} />
 
     {/* Usage Stats Modal */}
     <AnimatePresence>

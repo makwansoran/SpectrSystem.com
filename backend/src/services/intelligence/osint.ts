@@ -5,7 +5,16 @@
 
 import axios from 'axios';
 import * as intelligenceDB from '../../database/intelligence';
-import type { IntelligenceOutput } from '../../../frontend/src/types';
+
+// Define IntelligenceOutput type locally since frontend types aren't available in backend
+export interface IntelligenceOutput {
+  data: any;
+  entities?: Array<{ type: string; value: string; confidence: number }>;
+  geolocation?: { lat: number; lon: number; accuracy?: number };
+  confidence?: number;
+  tags?: string[];
+  metadata?: any;
+}
 
 // ============================================
 // Domain Intelligence Node
@@ -295,7 +304,7 @@ export async function executeEntityExtraction(
   if (config.extractDomains !== false) {
     const domainRegex = /\b([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}\b/gi;
     const domains = text.match(domainRegex) || [];
-    domains.forEach(domain => {
+    domains.forEach((domain: string) => {
       // Skip if it's part of a URL
       if (!domain.startsWith('http') && !entities.find(e => e.type === 'domain' && e.value === domain)) {
         entities.push({ type: 'domain', value: domain, confidence: 0.85 });

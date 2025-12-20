@@ -637,7 +637,7 @@ export async function updateWorkflow(id: string, data: UpdateWorkflowRequest, or
 export async function deleteWorkflow(id: string, organizationId: string): Promise<boolean> {
   const { sql, params } = convertQuery('DELETE FROM workflows WHERE id = ? AND organization_id = ?', [id, organizationId]);
   const result = await pool.query(sql, params);
-  return result.rowCount > 0;
+  return (result.rowCount ?? 0) > 0;
 }
 
 export async function deleteAllWorkflows(): Promise<number> {
@@ -791,7 +791,7 @@ export async function getDataStoreValue(key: string): Promise<string | null> {
 export async function deleteDataStoreValue(key: string): Promise<boolean> {
   const { sql, params } = convertQuery('DELETE FROM data_store WHERE key = ?', [key]);
   const result = await pool.query(sql, params);
-  return result.rowCount > 0;
+  return (result.rowCount ?? 0) > 0;
 }
 
 // User Management Operations

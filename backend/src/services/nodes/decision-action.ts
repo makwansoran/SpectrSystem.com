@@ -3,7 +3,7 @@
  * Handles decision-making and action nodes for workflows
  */
 
-import type { ExecutionContext } from '../../executor';
+import type { ExecutionContext } from '../executor';
 import type { NodeExecutor } from './types';
 
 // ==================== DECISION NODES ====================

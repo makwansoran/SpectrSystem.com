@@ -3,7 +3,7 @@
  * Main Application Component with Routing
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LandingPage, SignInPage, SignUpPage, HomePage, SolutionsPage } from './pages';
 import SolutionsIndexPage from './pages/SolutionsIndexPage';
@@ -27,12 +27,21 @@ import StorePage from './pages/StorePage';
 import PublicStorePage from './pages/PublicStorePage';
 import DataPackDetailPage from './pages/DataPackDetailPage';
 import UsagePage from './pages/UsagePage';
+import AdminPage from './pages/AdminPage';
+import DatasetsPage from './pages/DatasetsPage';
+import AgentPage from './pages/AgentPage';
+import { useUserStore } from './stores/userStore';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const initialize = useUserStore((state) => state.initialize);
+
+  useEffect(() => {
+    // Initialize authentication state on app load
+    initialize();
+  }, [initialize]);
+
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <Routes>
+    <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/pricing" element={<PublicStorePage />} />
         <Route path="/store" element={<StorePage />} />
@@ -46,6 +55,7 @@ const App: React.FC = () => {
         <Route path="/home" element={<HomePage />} />
         <Route path="/app" element={<WorkflowEditor />} />
         <Route path="/app/:workflowId" element={<WorkflowEditor />} />
+        <Route path="/agent" element={<AgentPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/intel" element={<IntelligenceDashboard />} />
         <Route path="/profile" element={<ProfilePage />} />
@@ -59,7 +69,17 @@ const App: React.FC = () => {
         <Route path="/solutions/:slug" element={<SolutionsPage />} />
         <Route path="/data" element={<DataPage />} />
         <Route path="/usage" element={<UsagePage />} />
-      </Routes>
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/datasets" element={<DatasetsPage />} />
+    </Routes>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <ScrollToTop />
+      <AppContent />
     </BrowserRouter>
   );
 };

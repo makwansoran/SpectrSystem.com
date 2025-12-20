@@ -21,8 +21,14 @@ const api = axios.create({
   },
 });
 
-// Request interceptor for logging
+// Request interceptor for logging and authentication
 api.interceptors.request.use((config) => {
+  // Automatically add Authorization header if token exists
+  const token = localStorage.getItem('token');
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  
   console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
   return config;
 });
@@ -367,7 +373,7 @@ export async function register(
 /**
  * Verify email address
  */
-export async function verifyEmail(token: string): Promise<ApiResponse<{
+export async function verifyEmail(token: string, email?: string): Promise<ApiResponse<{
   user: any;
   organization: any;
   token: string;
@@ -376,7 +382,7 @@ export async function verifyEmail(token: string): Promise<ApiResponse<{
     user: any;
     organization: any;
     token: string;
-  }>>('/auth/verify-email', { token }, {
+  }>>('/auth/verify-email', { token, email }, {
     timeout: 10000 // 10 second timeout
   });
   return response.data;
@@ -504,17 +510,83 @@ export async function updateProfile(data: Partial<any>): Promise<any> {
  */
 export async function sendAgentMessage(
   message: string,
-  conversationHistory: Array<{ from: 'user' | 'agent'; text: string }> = []
-): Promise<{ message: string; model: string; provider: string }> {
+  conversationHistory: Array<{ from: 'user' | 'agent'; text: string }> = [],
+  workflowId?: string
+): Promise<{ 
+  message: string; 
+  model: string; 
+  provider: string;
+  action?: 'create_workflow' | 'create_dashboard' | null;
+  preview?: {
+    nodes?: Array<{
+      id: string;
+      type: string;
+      position: { x: number; y: number };
+      data: { label: string; config?: Record<string, unknown> };
+    }>;
+    edges?: Array<{
+      id: string;
+      source: string;
+      target: string;
+      sourceHandle?: string;
+      targetHandle?: string;
+    }>;
+    widgets?: Array<{
+      id: string;
+      type: string;
+      title: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      dataSource?: string;
+      config?: Record<string, unknown>;
+    }>;
+  };
+    progress?: string;
+    workflowId?: string;
+}> {
   const token = localStorage.getItem('token');
   if (!token) {
     throw new Error('Not authenticated');
   }
   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   
-  const response = await api.post<ApiResponse<{ message: string; model: string; provider: string }>>(
+  const response = await api.post<ApiResponse<{ 
+    message: string; 
+    model: string; 
+    provider: string;
+    action?: 'create_workflow' | 'create_dashboard' | null;
+    preview?: {
+      nodes?: Array<{
+        id: string;
+        type: string;
+        position: { x: number; y: number };
+        data: { label: string; config?: Record<string, unknown> };
+      }>;
+      edges?: Array<{
+        id: string;
+        source: string;
+        target: string;
+        sourceHandle?: string;
+        targetHandle?: string;
+      }>;
+      widgets?: Array<{
+        id: string;
+        type: string;
+        title: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        dataSource?: string;
+        config?: Record<string, unknown>;
+      }>;
+    };
+    progress?: string;
+  }>>(
     '/agent/chat',
-    { message, conversationHistory }
+    { message, conversationHistory, workflowId }
   );
   
   if (!response.data.data) {

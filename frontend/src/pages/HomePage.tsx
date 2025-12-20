@@ -31,7 +31,8 @@ import {
   Play,
   Folder,
   Brain,
-  FileJson
+  FileJson,
+  Shield
 } from 'lucide-react';
 import clsx from 'clsx';
 import * as api from '../services/api';
@@ -273,6 +274,12 @@ const HomePage: React.FC = () => {
               icon={BarChart3}
               label="Usage"
               onClick={() => navigate('/usage')}
+              expanded={sidebarHovered}
+            />
+            <SidebarItem
+              icon={Shield}
+              label="Admin"
+              onClick={() => navigate('/admin')}
               expanded={sidebarHovered}
             />
           </nav>

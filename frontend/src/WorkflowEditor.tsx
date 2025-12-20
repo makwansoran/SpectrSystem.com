@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { ReactFlowProvider } from 'reactflow';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2,
@@ -27,20 +27,24 @@ import NodeConfigurationModal from './components/NodeConfigurationModal';
 import CreateAccountModal from './components/CreateAccountModal';
 import DashboardDesigner, { type DashboardWidget } from './components/DashboardDesigner';
 import DashboardView from './components/DashboardView';
+import AgentChatTab from './components/AgentChatTab';
 import { useWorkflowStore } from './stores/workflowStore';
+import { useUserStore } from './stores/userStore';
 import * as api from './services/api';
 import { getNodeDefinition } from './constants/nodes';
 
 interface WorkflowTab {
   id: string;
-  name: string; // Fixed name: "Workflow" or "Dashboard"
-  type: 'workflow' | 'dashboard';
+  name: string; // Fixed name: "Workflow", "Dashboard", or "Agent"
+  type: 'workflow' | 'dashboard' | 'agent';
   workflowId: string; // Links tab to workflow
 }
 
 const WorkflowEditor: React.FC = () => {
   const { workflowId: urlWorkflowId } = useParams();
+  const navigate = useNavigate();
   const { workflowId, isLoading, fetchWorkflows, loadWorkflow, createNewWorkflow, setWorkflowName } = useWorkflowStore();
+  const { isAuthenticated, isLoading: isAuthLoading, initialize } = useUserStore();
   const [isApiHealthy, setIsApiHealthy] = useState<boolean | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState(true);
   
@@ -70,13 +74,43 @@ const WorkflowEditor: React.FC = () => {
   };
 
 
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      // Wait for auth to initialize
+      if (isAuthLoading) {
+        return;
+      }
+      
+      // If not authenticated, redirect to signin
+      if (!isAuthenticated) {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/signin');
+          return;
+        }
+        // Token exists but user not authenticated - try to initialize
+        await initialize();
+        const { isAuthenticated: authAfterInit } = useUserStore.getState();
+        if (!authAfterInit) {
+          navigate('/signin');
+        }
+      }
+    };
+    
+    checkAuth();
+  }, [isAuthenticated, isAuthLoading, navigate, initialize]);
+
   // Reset workflow loading ref when URL changes
   useEffect(() => {
     workflowLoadingRef.current = null;
   }, [urlWorkflowId]);
 
-  // Check API health on mount
+  // Check API health on mount (only if authenticated)
   useEffect(() => {
+    if (!isAuthenticated || isAuthLoading) {
+      return;
+    }
     const checkHealth = async () => {
       setIsCheckingHealth(true);
       const healthy = await api.checkHealth();
@@ -93,10 +127,10 @@ const WorkflowEditor: React.FC = () => {
           
           // Check if tabs already exist for this workflow
           setOpenTabs(prev => {
-            const existingWorkflowTab = prev.find(t => t.workflowId === urlWorkflowId && t.type === 'workflow');
-            if (existingWorkflowTab) {
-              // Tabs already exist, just activate the workflow tab
-              setActiveTabId(existingWorkflowTab.id);
+            const existingAgentTab = prev.find(t => t.workflowId === urlWorkflowId && t.type === 'agent');
+            if (existingAgentTab) {
+              // Tabs already exist, just activate the agent tab
+              setActiveTabId(existingAgentTab.id);
               return prev;
             }
             
@@ -113,16 +147,22 @@ const WorkflowEditor: React.FC = () => {
               type: 'dashboard',
               workflowId: urlWorkflowId,
             };
-            setActiveTabId(workflowTab.id);
+            const agentTab: WorkflowTab = {
+              id: `${urlWorkflowId}-agent`,
+              name: 'Agent', // Fixed name
+              type: 'agent',
+              workflowId: urlWorkflowId,
+            };
+            setActiveTabId(agentTab.id);
             loadWorkflow(urlWorkflowId);
-            return ensureNoDuplicates([workflowTab, dashboardTab]);
+            return ensureNoDuplicates([agentTab, dashboardTab, workflowTab]);
           });
         }
       }
     };
 
     checkHealth();
-  }, [fetchWorkflows, loadWorkflow, urlWorkflowId]);
+  }, [fetchWorkflows, loadWorkflow, urlWorkflowId, isAuthenticated, isAuthLoading]);
 
   // Show create account modal on first visit to /app without workflowId
   useEffect(() => {
@@ -150,8 +190,14 @@ const WorkflowEditor: React.FC = () => {
         type: 'dashboard',
         workflowId: tempId,
       };
-      setOpenTabs(ensureNoDuplicates([workflowTab, dashboardTab]));
-      setActiveTabId(workflowTab.id);
+      const agentTab: WorkflowTab = {
+        id: `${tempId}-agent`,
+        name: 'Agent', // Fixed name
+        type: 'agent',
+        workflowId: tempId,
+      };
+      setOpenTabs(ensureNoDuplicates([agentTab, dashboardTab, workflowTab]));
+      setActiveTabId(agentTab.id);
     }
   }, [urlWorkflowId, showCreateAccountModal, openTabs.length]); // Only run once on mount if no URL workflow
 
@@ -190,18 +236,21 @@ const WorkflowEditor: React.FC = () => {
 
     setOpenTabs(prev => {
       // Prevent closing if it would leave no tabs
-      if (prev.length <= 2) {
-        return prev; // Keep at least one workflow and one dashboard tab
+      if (prev.length <= 3) {
+        return prev; // Keep at least one workflow, dashboard, and agent tab
       }
 
       let newTabs = prev.filter(t => t.id !== tabId);
 
-      // If closing workflow tab, also close dashboard tab (they're paired)
+      // If closing workflow tab, also close dashboard and agent tabs (they're paired)
       if (tab.type === 'workflow') {
-        newTabs = newTabs.filter(t => !(t.workflowId === tab.workflowId && t.type === 'dashboard'));
+        newTabs = newTabs.filter(t => !(t.workflowId === tab.workflowId && (t.type === 'dashboard' || t.type === 'agent')));
       } else if (tab.type === 'dashboard') {
-        // If closing dashboard tab, also close workflow tab (they're paired)
-        newTabs = newTabs.filter(t => !(t.workflowId === tab.workflowId && t.type === 'workflow'));
+        // If closing dashboard tab, also close workflow and agent tabs (they're paired)
+        newTabs = newTabs.filter(t => !(t.workflowId === tab.workflowId && (t.type === 'workflow' || t.type === 'agent')));
+      } else if (tab.type === 'agent') {
+        // If closing agent tab, also close workflow and dashboard tabs (they're paired)
+        newTabs = newTabs.filter(t => !(t.workflowId === tab.workflowId && (t.type === 'workflow' || t.type === 'dashboard')));
       }
 
       // Ensure no duplicates
@@ -209,7 +258,7 @@ const WorkflowEditor: React.FC = () => {
 
       // Switch to another tab if closing active tab
       if (tabId === activeTabId && newTabs.length > 0) {
-        const nextTab = newTabs.find(t => t.type === 'workflow') || newTabs[0];
+        const nextTab = newTabs.find(t => t.type === 'agent') || newTabs.find(t => t.type === 'workflow') || newTabs[0];
         if (nextTab) {
           setActiveTabId(nextTab.id);
           if (nextTab.type === 'workflow' && !nextTab.workflowId.startsWith('new-')) {
@@ -306,17 +355,24 @@ const WorkflowEditor: React.FC = () => {
         type: 'dashboard',
         workflowId: workflow.id,
       };
+      const agentTab: WorkflowTab = {
+        id: `${workflow.id}-agent`,
+        name: 'Agent', // Fixed name
+        type: 'agent',
+        workflowId: workflow.id,
+      };
 
       // Set active tab first to ensure Canvas is ready
-      setActiveTabId(workflowTab.id);
+      setActiveTabId(agentTab.id);
       setOpenTabs(prev => {
         // Check if tabs for this workflow already exist - prevent duplicates
-        const existingWorkflowTab = prev.find(t => t.workflowId === workflow.id && t.type === 'workflow');
-        if (existingWorkflowTab) {
-          // Tabs already exist, just activate the workflow tab
+        const existingAgentTab = prev.find(t => t.workflowId === workflow.id && t.type === 'agent');
+        if (existingAgentTab) {
+          // Tabs already exist, just activate the agent tab
+          setActiveTabId(existingAgentTab.id);
           return prev;
         }
-        const newTabs = [...prev, workflowTab, dashboardTab];
+        const newTabs = [...prev, agentTab, dashboardTab, workflowTab];
         return ensureNoDuplicates(newTabs);
       });
 
@@ -365,6 +421,16 @@ const WorkflowEditor: React.FC = () => {
     }
   };
 
+  // Show loading while checking auth
+  if (isAuthLoading) {
+    return <LoadingScreen message="Checking authentication..." />;
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
+
   // Loading state
   if (isCheckingHealth) {
     return <LoadingScreen message="Connecting to SPECTR SYSTEM..." />;
@@ -403,8 +469,8 @@ const WorkflowEditor: React.FC = () => {
               <span className="truncate flex-1">
                 {tab.name}
               </span>
-              {/* Only show close button if there are more than 2 tabs (workflow + dashboard) */}
-              {openTabs.length > 2 && (
+              {/* Only show close button if there are more than 3 tabs (workflow + dashboard + agent) */}
+              {openTabs.length > 3 && (
                 <button
                   onClick={(e) => handleTabClose(e, tab.id)}
                   className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-opacity"
@@ -423,6 +489,10 @@ const WorkflowEditor: React.FC = () => {
             
             if (activeTab?.type === 'dashboard') {
               return <WorkflowDashboard workflowId={activeTab.workflowId} />;
+            }
+            
+            if (activeTab?.type === 'agent') {
+              return <AgentChatTab workflowId={activeTab.workflowId} />;
             }
             
             return (
@@ -550,7 +620,7 @@ const WorkflowDashboard: React.FC<{ workflowId: string }> = ({ workflowId }) => 
                             setSelectedDashboardId(node.id);
                             setDashboardMode('design'); // Open in design mode when clicking Design button
                           }}
-                          className="flex items-center gap-1.5 text-[10px] font-medium text-slate-700 hover:text-slate-900 px-2 py-1 rounded hover:bg-slate-50 transition-colors group-hover:text-purple-600"
+                          className="flex items-center gap-1.5 text-[10px] font-medium text-white bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-md transition-colors shadow-sm"
                         >
                           <PenTool className="w-3 h-3" />
                           Design

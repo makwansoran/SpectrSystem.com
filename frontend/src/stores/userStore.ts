@@ -52,6 +52,7 @@ interface UserState {
   fetchOrganization: () => Promise<void>;
   fetchUsageStats: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
+  initialize: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState>((set, get) => ({
@@ -158,6 +159,37 @@ export const useUserStore = create<UserState>((set, get) => ({
       set({ user: updatedUser });
     } catch (error) {
       throw error;
+    }
+  },
+
+  // Initialize - restore session from localStorage token
+  initialize: async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        set({ isLoading: false, isAuthenticated: false });
+        return;
+      }
+
+      // Try to fetch user with existing token
+      const user = await api.getCurrentUser();
+      const organization = await api.getOrganization().catch(() => null);
+      
+      set({ 
+        user, 
+        organization,
+        isAuthenticated: true, 
+        isLoading: false 
+      });
+    } catch (error) {
+      // Token is invalid or expired, clear it
+      localStorage.removeItem('token');
+      set({ 
+        user: null, 
+        organization: null,
+        isAuthenticated: false, 
+        isLoading: false 
+      });
     }
   },
 }));

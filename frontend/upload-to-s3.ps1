@@ -55,5 +55,5 @@ foreach ($file in $files) {
 }
 
 Write-Host "`nUpload complete! Invalidating CloudFront cache..." -ForegroundColor Green
-Write-Host "Please go to CloudFront console and create an invalidation for '/*'" -ForegroundColor Yellow
+Write-Host "Please go to CloudFront console and create an invalidation for /*" -ForegroundColor Yellow
 

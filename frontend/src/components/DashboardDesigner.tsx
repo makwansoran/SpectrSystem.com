@@ -24,6 +24,7 @@ import {
   Eye,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { WorkflowMapComponent, type WorkflowMapConfig } from './WorkflowMap';
 import type { FlowNode } from '../types';
 
 // Widget Types
@@ -398,9 +399,20 @@ const DashboardDesigner: React.FC<DashboardDesignerProps> = ({
                         </div>
                       )}
                       {widget.type === 'map' && (
-                        <div className="text-center py-8 text-slate-400">
-                          <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-xs">Map Widget</p>
+                        <div className="w-full h-full">
+                          <WorkflowMapComponent
+                            config={{
+                              center: (widget.config.center as [number, number]) || [51.505, -0.09],
+                              zoom: (widget.config.zoom as number) || 13,
+                              tileProvider: (widget.config.tileProvider as 'osm' | 'carto' | 'esri' | 'stamen' | 'custom') || 'osm',
+                              markers: (widget.config.markers as any[]) || [],
+                              showZoomControls: widget.config.showZoomControls !== false,
+                              showFullscreen: false,
+                              showSettings: false,
+                              height: '100%',
+                            }}
+                            className="rounded-lg"
+                          />
                         </div>
                       )}
                       {widget.type === 'text' && (
@@ -540,6 +552,104 @@ const DashboardDesigner: React.FC<DashboardDesignerProps> = ({
                       Comma-separated list of fields to display
                     </p>
                   </div>
+                )}
+
+                {selectedWidget.type === 'map' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Map Center (Lat, Lng)</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="number"
+                          step="any"
+                          value={((selectedWidget.config.center as [number, number])?.[0] || 51.505).toString()}
+                          onChange={(e) => {
+                            const lat = parseFloat(e.target.value) || 51.505;
+                            const lng = ((selectedWidget.config.center as [number, number])?.[1] || -0.09);
+                            updateWidget(selectedWidget.id, {
+                              config: {
+                                ...selectedWidget.config,
+                                center: [lat, lng],
+                              },
+                            });
+                          }}
+                          placeholder="Latitude"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                        <input
+                          type="number"
+                          step="any"
+                          value={((selectedWidget.config.center as [number, number])?.[1] || -0.09).toString()}
+                          onChange={(e) => {
+                            const lat = ((selectedWidget.config.center as [number, number])?.[0] || 51.505);
+                            const lng = parseFloat(e.target.value) || -0.09;
+                            updateWidget(selectedWidget.id, {
+                              config: {
+                                ...selectedWidget.config,
+                                center: [lat, lng],
+                              },
+                            });
+                          }}
+                          placeholder="Longitude"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Zoom Level</label>
+                      <input
+                        type="number"
+                        value={(selectedWidget.config.zoom as number) || 13}
+                        onChange={(e) => updateWidget(selectedWidget.id, {
+                          config: {
+                            ...selectedWidget.config,
+                            zoom: parseInt(e.target.value) || 13,
+                          },
+                        })}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        min="1"
+                        max="18"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Tile Provider</label>
+                      <select
+                        value={(selectedWidget.config.tileProvider as string) || 'osm'}
+                        onChange={(e) => updateWidget(selectedWidget.id, {
+                          config: {
+                            ...selectedWidget.config,
+                            tileProvider: e.target.value,
+                          },
+                        })}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="osm">OpenStreetMap</option>
+                        <option value="carto">CartoDB</option>
+                        <option value="esri">Esri</option>
+                        <option value="stamen">Stamen</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="showZoomControls"
+                        checked={selectedWidget.config.showZoomControls !== false}
+                        onChange={(e) => updateWidget(selectedWidget.id, {
+                          config: {
+                            ...selectedWidget.config,
+                            showZoomControls: e.target.checked,
+                          },
+                        })}
+                        className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
+                      />
+                      <label htmlFor="showZoomControls" className="text-xs font-medium text-slate-700">
+                        Show Zoom Controls
+                      </label>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

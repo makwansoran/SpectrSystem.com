@@ -193,6 +193,8 @@ export interface IntelligenceFinding {
 }
 
 export interface CreateIntelligenceFindingRequest {
+  timestamp?: string;
+  caseId?: string; // Alias for projectId
   projectId?: string;
   workflowId?: string;
   nodeId?: string;

@@ -19,6 +19,7 @@ import {
 // Execution context passed between nodes
 export interface ExecutionContext {
   executionId: string;
+  workflowExecutionId?: string; // Alias for executionId for compatibility
   variables: Record<string, unknown>;
   previousNodeOutput: unknown;
   allNodeOutputs: Record<string, unknown>;
@@ -38,6 +39,7 @@ import {
   executeEntitySignupTrigger,
   executeExternalAlertTrigger,
   executePeriodicDataPullTrigger,
+  executePurchasedDataInput,
   executeHttpRequest,
   executeSetVariable,
   executeCondition,
@@ -123,13 +125,15 @@ export async function executeWorkflow(
 ): Promise<WorkflowExecution> {
   console.log(`🚀 Starting execution of workflow: ${workflow.name}`);
 
-  // Create execution record
-  const execution = createExecution(workflow.id, workflow.name, triggeredBy);
+  // Create execution record - handle both sync and async
+  const executionResult = createExecution(workflow.id, workflow.name, triggeredBy);
+  const execution = executionResult instanceof Promise ? await executionResult : executionResult;
   const nodeResults: NodeExecutionResult[] = [];
 
   // Initialize context
   const context: ExecutionContext = {
     executionId: execution.id,
+    workflowExecutionId: execution.id, // Add alias for compatibility
     variables: {},
     previousNodeOutput: triggerData || {},
     allNodeOutputs: {},
@@ -166,17 +170,20 @@ export async function executeWorkflow(
     const duration = new Date(endTime).getTime() - new Date(execution.startTime).getTime();
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    // Update execution as failed
-    const updatedExecution = updateExecution(execution.id, {
+    // Update execution as failed - handle both sync and async
+    const updatedExecutionResult = updateExecution(execution.id, {
       status: 'failed',
       endTime,
       duration,
       nodeResults,
       error: errorMessage
     });
+    const updatedExecution = updatedExecutionResult instanceof Promise 
+      ? await updatedExecutionResult 
+      : updatedExecutionResult;
 
     console.error(`❌ Workflow execution failed: ${errorMessage}`);
-    return updatedExecution!;
+    return updatedExecution || execution;
   }
 }
 

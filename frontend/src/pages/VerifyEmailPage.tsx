@@ -104,10 +104,11 @@ const VerifyEmailPage: React.FC = () => {
     }
     
     const trimmedToken = verificationToken.trim();
-    console.log('Calling verifyEmail API with token:', trimmedToken.substring(0, 20) + '...');
+    const emailParam = email || searchParams.get('email');
+    console.log('Calling verifyEmail API with token:', trimmedToken.substring(0, 20) + '...', 'email:', emailParam);
     
     try {
-      const response = await api.verifyEmail(trimmedToken);
+      const response = await api.verifyEmail(trimmedToken, emailParam || undefined);
       console.log('Verification response:', response);
       if (response.success) {
         // Mark as verified and store token FIRST
@@ -253,11 +254,11 @@ const VerifyEmailPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen bg-white text-gray-900 flex items-center justify-center relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/5 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-white/5 blur-3xl" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gray-100 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gray-100 blur-3xl" />
       </div>
 
       {/* Content */}
@@ -266,24 +267,24 @@ const VerifyEmailPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-8"
+          className="bg-white border border-gray-200 rounded-lg p-8 shadow-sm"
         >
           {/* Logo */}
           <div className="flex items-center justify-center mb-8">
-            <img src="/EyelogoWhite.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
-            <span className="text-2xl font-semibold tracking-wide" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '-0.02em' }}>SPECTR SYSTEM</span>
+            <img src="/EyelogoBlack.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
+            <span className="text-2xl font-semibold tracking-wide text-gray-900" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '-0.02em' }}>SPECTR SYSTEM</span>
           </div>
 
           {/* Status Display */}
           <div className="text-center mb-8">
             {status === 'pending' && (
               <>
-                <Mail className="w-16 h-16 mx-auto mb-4 text-white/60" />
-                <h1 className="text-3xl font-light tracking-tight mb-2">Check your email</h1>
-                <p className="text-white/60 mb-4">
-                  We've sent a verification link to <strong>{email}</strong>
+                <Mail className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <h1 className="text-3xl font-light tracking-tight mb-2 text-gray-900">Check your email</h1>
+                <p className="text-gray-600 mb-4">
+                  We've sent a verification link to <strong className="text-gray-900">{email}</strong>
                 </p>
-                <p className="text-white/40 text-sm mb-6">
+                <p className="text-gray-500 text-sm mb-6">
                   Click the link in the email to verify your account. The link will expire in 24 hours.
                 </p>
                 <button
@@ -291,8 +292,8 @@ const VerifyEmailPage: React.FC = () => {
                   disabled={isResending}
                   className={clsx(
                     'w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-base',
-                    'bg-white text-black font-medium',
-                    'hover:bg-white/90 transition-colors',
+                    'bg-gray-900 text-white font-medium',
+                    'hover:bg-gray-800 transition-colors',
                     'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
                 >
@@ -313,9 +314,9 @@ const VerifyEmailPage: React.FC = () => {
 
             {status === 'verifying' && (
               <>
-                <Loader2 className="w-16 h-16 mx-auto mb-4 text-white animate-spin" />
-                <h1 className="text-3xl font-light tracking-tight mb-2">Verifying your email</h1>
-                <p className="text-white/60">Please wait...</p>
+                <Loader2 className="w-16 h-16 mx-auto mb-4 text-gray-900 animate-spin" />
+                <h1 className="text-3xl font-light tracking-tight mb-2 text-gray-900">Verifying your email</h1>
+                <p className="text-gray-600">Please wait...</p>
               </>
             )}
 
@@ -326,19 +327,19 @@ const VerifyEmailPage: React.FC = () => {
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                 >
-                  <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-500" />
+                  <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-600" />
                 </motion.div>
-                <h1 className="text-3xl font-light tracking-tight mb-2">Email verified!</h1>
-                <p className="text-white/60">Your email address has been successfully verified.</p>
-                <p className="text-white/40 text-sm mt-2">Redirecting to plan selection...</p>
+                <h1 className="text-3xl font-light tracking-tight mb-2 text-gray-900">Email verified!</h1>
+                <p className="text-gray-600">Your email address has been successfully verified.</p>
+                <p className="text-gray-500 text-sm mt-2">Redirecting to plan selection...</p>
               </>
             )}
 
             {status === 'error' && (
               <>
-                <XCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
-                <h1 className="text-3xl font-light tracking-tight mb-2">Verification failed</h1>
-                <p className="text-white/60 mb-4">{error}</p>
+                <XCircle className="w-16 h-16 mx-auto mb-4 text-red-600" />
+                <h1 className="text-3xl font-light tracking-tight mb-2 text-gray-900">Verification failed</h1>
+                <p className="text-gray-600 mb-4">{error}</p>
                 
                 {(error.includes('expired') || error.includes('Invalid')) && email && (
                   <div className="mt-6">
@@ -347,8 +348,8 @@ const VerifyEmailPage: React.FC = () => {
                       disabled={isResending}
                       className={clsx(
                         'w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-base',
-                        'bg-white text-black font-medium',
-                        'hover:bg-white/90 transition-colors',
+                        'bg-gray-900 text-white font-medium',
+                        'hover:bg-gray-800 transition-colors',
                         'disabled:opacity-50 disabled:cursor-not-allowed'
                       )}
                     >
@@ -371,10 +372,10 @@ const VerifyEmailPage: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <div className="mt-8 text-center text-sm text-white/60">
+          <div className="mt-8 text-center text-sm text-gray-600">
             <Link
               to="/signin"
-              className="text-white hover:text-white/80 transition-colors inline-flex items-center gap-1"
+              className="text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center gap-1"
             >
               Back to Sign In
               <ArrowRight className="w-4 h-4" />

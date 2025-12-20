@@ -10,6 +10,7 @@ export { executeScheduleTrigger } from './triggers/schedule-trigger';
 export { executeEntitySignupTrigger } from './triggers/entity-signup-trigger';
 export { executeExternalAlertTrigger } from './triggers/external-alert-trigger';
 export { executePeriodicDataPullTrigger } from './triggers/periodic-data-pull-trigger';
+export { executePurchasedDataInput } from './triggers/purchased-data-input';
 
 // Core Actions
 export { executeHttpRequest } from './core/http-request';

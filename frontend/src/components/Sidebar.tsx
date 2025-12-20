@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Settings,
   BarChart3,
+  Shield,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useUserStore } from '../stores/userStore';
@@ -51,7 +52,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, onClick, e
 };
 
 interface SidebarProps {
-  activePage?: 'home' | 'data' | 'store' | 'settings' | 'profile' | 'usage';
+  activePage?: 'home' | 'data' | 'store' | 'settings' | 'profile' | 'usage' | 'admin';
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage = 'home' }) => {
@@ -125,6 +126,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage = 'home' }) => {
             label="Usage"
             active={activePage === 'usage'}
             onClick={() => navigate('/usage')}
+            expanded={sidebarHovered}
+          />
+          <SidebarItem
+            icon={Shield}
+            label="Admin"
+            active={activePage === 'admin'}
+            onClick={() => navigate('/admin')}
             expanded={sidebarHovered}
           />
         </nav>

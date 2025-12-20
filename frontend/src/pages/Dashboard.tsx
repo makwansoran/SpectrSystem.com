@@ -32,21 +32,58 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import * as api from '../services/api';
+import { useUserStore } from '../stores/userStore';
 import type { WorkflowListItem, WorkflowExecution } from '../types';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading: isAuthLoading, initialize } = useUserStore();
   const [workflows, setWorkflows] = useState<WorkflowListItem[]>([]);
   const [executions, setExecutions] = useState<WorkflowExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
 
+  // Check authentication on mount
   useEffect(() => {
-    fetchData();
-  }, []);
+    const checkAuth = async () => {
+      // Wait for auth to initialize
+      if (isAuthLoading) {
+        return;
+      }
+      
+      // If not authenticated, redirect to signin
+      if (!isAuthenticated) {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/signin');
+          return;
+        }
+        // Token exists but user not authenticated - try to initialize
+        await initialize();
+        const { isAuthenticated: authAfterInit } = useUserStore.getState();
+        if (!authAfterInit) {
+          navigate('/signin');
+        }
+      }
+    };
+    
+    checkAuth();
+  }, [isAuthenticated, isAuthLoading, navigate, initialize]);
+
+  useEffect(() => {
+    // Only fetch data if authenticated
+    if (isAuthenticated && !isAuthLoading) {
+      fetchData();
+    }
+  }, [isAuthenticated, isAuthLoading]);
 
   const fetchData = async () => {
+    // Don't fetch if not authenticated
+    if (!isAuthenticated) {
+      return;
+    }
+    
     setLoading(true);
     try {
       const [workflowsData, executionsData] = await Promise.all([
@@ -57,6 +94,10 @@ const Dashboard: React.FC = () => {
       setExecutions(executionsData);
     } catch (err) {
       console.error('Failed to fetch data:', err);
+      // If auth error, redirect to signin
+      if ((err as any)?.response?.status === 401) {
+        navigate('/signin');
+      }
     } finally {
       setLoading(false);
     }
@@ -130,6 +171,20 @@ const Dashboard: React.FC = () => {
       default: return Clock;
     }
   };
+
+  // Show loading while checking auth
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

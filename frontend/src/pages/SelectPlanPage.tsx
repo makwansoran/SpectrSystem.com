@@ -141,8 +141,8 @@ const SelectPlanPage: React.FC = () => {
 
   if (isChecking) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="min-h-screen bg-white text-gray-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-900" />
       </div>
     );
   }
@@ -219,11 +219,11 @@ const SelectPlanPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-white text-gray-900">
       {/* Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/5 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-white/5 blur-3xl" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gray-100 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gray-100 blur-3xl" />
       </div>
 
       {/* Content */}
@@ -236,15 +236,15 @@ const SelectPlanPage: React.FC = () => {
         >
           {/* Logo */}
           <div className="flex items-center justify-center mb-8">
-            <img src="/EyelogoWhite.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
-            <span className="text-2xl font-semibold tracking-wide" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '-0.02em' }}>SPECTR SYSTEM</span>
+            <img src="/EyelogoBlack.png" alt="SPECTR SYSTEM" className="h-16 w-auto" />
+            <span className="text-2xl font-semibold tracking-wide text-gray-900" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '-0.02em' }}>SPECTR SYSTEM</span>
           </div>
 
-          <div className="text-sm tracking-widest text-white/60 mb-6">CHOOSE YOUR PLAN</div>
-          <h1 className="text-5xl lg:text-7xl font-light tracking-tight mb-8">
+          <div className="text-sm tracking-widest text-gray-600 mb-6">CHOOSE YOUR PLAN</div>
+          <h1 className="text-5xl lg:text-7xl font-light tracking-tight mb-8 text-gray-900">
             Select your plan
           </h1>
-          <p className="text-xl text-white/60 max-w-2xl mx-auto mb-12">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-12">
             Choose the plan that fits your needs. You can upgrade or downgrade at any time.
           </p>
         </motion.div>
@@ -260,40 +260,40 @@ const SelectPlanPage: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className={clsx(
-                  'relative p-8 border transition-all cursor-pointer',
+                  'relative p-8 border transition-all cursor-pointer bg-white',
                   plan.popular
-                    ? 'border-white/30 bg-white/5'
-                    : 'border-white/10 hover:border-white/20',
-                  selectedPlan === plan.id && 'border-white/50 bg-white/10'
+                    ? 'border-gray-300 bg-gray-50'
+                    : 'border-gray-200 hover:border-gray-300',
+                  selectedPlan === plan.id && 'border-gray-900 bg-gray-50'
                 )}
                 onClick={() => setSelectedPlan(plan.id)}
               >
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-white text-black text-xs font-medium">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gray-900 text-white text-xs font-medium">
                     MOST POPULAR
                   </div>
                 )}
 
                 {/* Header */}
                 <div className="mb-8">
-                  <div className="text-xs tracking-widest text-white/40 mb-4">{plan.name}</div>
+                  <div className="text-xs tracking-widest text-gray-500 mb-4">{plan.name}</div>
                   
                   <div className="flex items-baseline gap-2 mb-3">
-                    <span className="text-5xl font-light">
+                    <span className="text-5xl font-light text-gray-900">
                       ${plan.price}
                     </span>
-                    {plan.price > 0 && <span className="text-white/40">/month</span>}
+                    {plan.price > 0 && <span className="text-gray-600">/month</span>}
                   </div>
                   
-                  <p className="text-sm text-white/60">{plan.description}</p>
+                  <p className="text-sm text-gray-600">{plan.description}</p>
                 </div>
 
                 {/* Features */}
                 <div className="space-y-4 mb-8">
                   {plan.features.map((feature) => (
                     <div key={feature} className="flex items-start gap-3">
-                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-white/40" />
-                      <span className="text-sm text-white/70">{feature}</span>
+                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                      <span className="text-sm text-gray-700">{feature}</span>
                     </div>
                   ))}
                 </div>
@@ -308,8 +308,8 @@ const SelectPlanPage: React.FC = () => {
                   className={clsx(
                     'w-full py-4 text-center text-sm font-medium transition-all',
                     plan.popular || selectedPlan === plan.id
-                      ? 'bg-white text-black hover:bg-white/90'
-                      : 'border border-white/20 text-white hover:border-white/40',
+                      ? 'bg-gray-900 text-white hover:bg-gray-800'
+                      : 'border border-gray-300 text-gray-900 hover:border-gray-900',
                     isLoading && 'opacity-50 cursor-not-allowed'
                   )}
                 >
@@ -339,22 +339,22 @@ const SelectPlanPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
               className={clsx(
-                'relative p-8 border transition-all cursor-pointer',
-                'border-white/10 hover:border-white/20',
-                selectedPlan === plan.id && 'border-white/50 bg-white/10'
+                'relative p-8 border transition-all cursor-pointer bg-white',
+                'border-gray-200 hover:border-gray-300',
+                selectedPlan === plan.id && 'border-gray-900 bg-gray-50'
               )}
               onClick={() => setSelectedPlan(plan.id)}
             >
               <div className="grid lg:grid-cols-2 gap-12 items-center">
                 {/* Left: Header and Description */}
                 <div>
-                  <div className="text-xs tracking-widest text-white/40 mb-4">{plan.name}</div>
-                  <p className="text-lg text-white/60 mb-8">{plan.description}</p>
+                  <div className="text-xs tracking-widest text-gray-500 mb-4">{plan.name}</div>
+                  <p className="text-lg text-gray-600 mb-8">{plan.description}</p>
                   
                   <Link
                     to="/contact-sales"
                     onClick={(e) => e.stopPropagation()}
-                    className="px-8 py-4 bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors inline-flex items-center gap-2"
+                    className="px-8 py-4 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors inline-flex items-center gap-2"
                   >
                     Contact Sales
                     <ArrowRight className="w-4 h-4" />
@@ -363,12 +363,12 @@ const SelectPlanPage: React.FC = () => {
 
                 {/* Right: Features */}
                 <div className="space-y-4">
-                  <div className="text-xs tracking-widest text-white/30 mb-4">INCLUDES</div>
+                  <div className="text-xs tracking-widest text-gray-500 mb-4">INCLUDES</div>
                   <div className="grid grid-cols-2 gap-4">
                     {plan.features.map((feature) => (
                       <div key={feature} className="flex items-start gap-3">
-                        <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-white/40" />
-                        <span className="text-sm text-white/70">{feature}</span>
+                        <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                        <span className="text-sm text-gray-700">{feature}</span>
                       </div>
                     ))}
                   </div>
@@ -380,7 +380,7 @@ const SelectPlanPage: React.FC = () => {
 
         {/* Footer Note */}
         <div className="mt-16 text-center">
-          <p className="text-sm text-white/40">
+          <p className="text-sm text-gray-600">
             All plans include a 14-day free trial. Cancel anytime.
           </p>
         </div>

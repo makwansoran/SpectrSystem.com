@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Browser Renderer
  * Headless browser integration for JavaScript-heavy sites

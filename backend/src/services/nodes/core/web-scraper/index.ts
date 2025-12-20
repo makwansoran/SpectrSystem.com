@@ -13,7 +13,7 @@ import { interpolateVariables } from '../../utils';
 import { WebScraperConfig, DEFAULT_CONFIG } from './config';
 import { getRandomUserAgent, generateHeaders } from './user-agents';
 import { RateLimiter } from './rate-limiter';
-import { ProxyRotator } from './proxy-rotator';
+import { ProxyRotator, type Proxy as ProxyConfig } from './proxy-rotator';
 import { RobotsChecker } from './robots-checker';
 import { RetryHandler } from './retry-handler';
 import { MetricsCollector } from './metrics';
@@ -29,7 +29,7 @@ interface EnhancedWebScraperConfig extends WebScraperConfig {
  * Main Web Scraper Class
  */
 class RobustWebScraper {
-  private config: Required<Omit<EnhancedConfig, 'url' | 'selectors' | 'headers'>>;
+  private config: EnhancedWebScraperConfig;
   private rateLimiter: RateLimiter;
   private proxyRotator: ProxyRotator | null = null;
   private robotsChecker: RobotsChecker;
@@ -94,7 +94,7 @@ class RobustWebScraper {
       // Get crawl delay if specified
       const crawlDelay = await this.robotsChecker.getCrawlDelay(normalizedUrl, this.userAgent);
       if (crawlDelay) {
-        await this.rateLimiter.sleep(crawlDelay);
+        await (this.rateLimiter as any).sleep(crawlDelay);
       }
     }
 
@@ -214,7 +214,7 @@ class RobustWebScraper {
     return this.retryHandler.execute(async () => {
       // Get proxy if using proxies
       const proxy = this.proxyRotator?.getNextProxy() || null;
-      let currentProxy: Proxy | null = null;
+      let currentProxy: ProxyConfig | null = null;
 
       try {
         // Prepare request config

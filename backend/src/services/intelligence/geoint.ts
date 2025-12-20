@@ -4,7 +4,16 @@
  */
 
 import axios from 'axios';
-import type { IntelligenceOutput } from '../../../frontend/src/types';
+
+// Define IntelligenceOutput type locally since frontend types aren't available in backend
+export interface IntelligenceOutput {
+  data: any;
+  entities?: Array<{ type: string; value: string; confidence: number }>;
+  geolocation?: { lat: number; lon: number; accuracy?: number };
+  confidence?: number;
+  tags?: string[];
+  metadata?: any;
+}
 
 // ============================================
 // Geocoding Node
@@ -413,7 +422,16 @@ export async function executeShipTracking(
     let data: any;
     let geolocation: { lat: number; lon: number; accuracy?: number } | undefined;
 
-    if (apiKey && searchType !== 'area') {
+    let query = '';
+    if (searchType === 'mmsi') {
+      query = config.mmsi || input?.mmsi || input?.data?.mmsi || '';
+    } else if (searchType === 'imo') {
+      query = config.imo || input?.imo || input?.data?.imo || '';
+    } else if (searchType === 'name') {
+      query = config.shipName || input?.name || input?.data?.name || '';
+    }
+
+    if (apiKey && searchType !== 'area' && query) {
       // Use MarineTraffic API if available
       const response = await axios.get(
         `https://services.marinetraffic.com/api/exportvessel/v:8/MMSI:${query}/protocol:jsono`,

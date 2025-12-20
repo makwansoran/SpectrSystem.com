@@ -251,8 +251,15 @@ router.post('/:id/execute', authenticate, async (req: Request, res: Response) =>
       });
     }
 
-    // Execute the workflow
-    const execution = await executeWorkflow(workflow, 'manual', req.body.input);
+    // Execute the workflow - ensure workflow is not a Promise
+    const workflowResult = workflow instanceof Promise ? await workflow : workflow;
+    if (!workflowResult) {
+      return res.status(404).json({
+        success: false,
+        error: 'Workflow not found'
+      });
+    }
+    const execution = await executeWorkflow(workflowResult, 'manual', req.body.input);
 
     res.json({
       success: true,

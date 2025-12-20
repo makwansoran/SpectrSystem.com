@@ -3,7 +3,7 @@
  * Modal for configuring nodes, including integration nodes with provider/action selection
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -2201,6 +2201,28 @@ const SFTPConnectionSettings: React.FC<{
   );
 };
 
+// Icon mapping for dataset icons stored as strings
+const getIconComponent = (iconName?: string): React.ComponentType<{ className?: string }> => {
+  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+    Building2,
+    Shield,
+    MapPin,
+    Ship,
+    DollarSign,
+    Network,
+    AlertTriangle,
+    FileText,
+    BarChart3,
+    Database,
+    ShoppingBag,
+    Zap,
+    TrendingUp,
+    Search,
+    Brain,
+  };
+  return iconMap[iconName || ''] || ShoppingBag;
+};
+
 // Spectr Live Data Settings
 const SpectrLiveDataSettings: React.FC<{
   config: any;
@@ -2208,130 +2230,78 @@ const SpectrLiveDataSettings: React.FC<{
 }> = ({ config, onChange }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>(config.category || 'all');
+  const [datasets, setDatasets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Dataset categories
-  const categories = [
-    { id: 'all', name: 'All Datasets', count: 24 },
-    { id: 'corporate', name: 'Corporate Intelligence', count: 8 },
-    { id: 'sanctions', name: 'Sanctions & Compliance', count: 5 },
-    { id: 'geographic', name: 'Geographic Intelligence', count: 6 },
-    { id: 'financial', name: 'Financial Data', count: 5 },
-  ];
+  // Fetch datasets from admin API
+  useEffect(() => {
+    const fetchDatasets = async () => {
+      try {
+        setLoading(true);
+        const { getDatasets } = await import('../services/adminApi');
+        const response = await getDatasets();
+        if (response.success && response.data) {
+          // Only show active AND public datasets (security: don't expose internal datasets)
+          const publicDatasets = response.data.filter((d: any) => 
+            d.isActive !== false && d.isPublic === true
+          );
+          setDatasets(publicDatasets);
+        }
+      } catch (error) {
+        console.error('Failed to fetch datasets:', error);
+        setDatasets([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchDatasets();
+  }, []);
   
-  // Available datasets (based on subscriptions)
-  const availableDatasets = [
-    {
-      id: 'corp-registry-global',
-      name: 'Global Corporate Registry',
-      category: 'corporate',
-      description: 'Real-time corporate registration data from 180+ countries',
-      subscription: 'active',
-      updateFrequency: 'Real-time',
-      coverage: '180+ countries',
-      icon: Building2,
-    },
-    {
-      id: 'sanctions-ofac',
-      name: 'OFAC Sanctions List',
-      category: 'sanctions',
-      description: 'US Treasury OFAC sanctions, SDN, and blocked persons',
-      subscription: 'active',
-      updateFrequency: 'Daily',
-      coverage: 'Global',
-      icon: Shield,
-    },
-    {
-      id: 'sanctions-un',
-      name: 'UN Sanctions List',
-      category: 'sanctions',
-      description: 'United Nations consolidated sanctions list',
-      subscription: 'active',
-      updateFrequency: 'Daily',
-      coverage: 'Global',
-      icon: Shield,
-    },
-    {
-      id: 'corp-ownership',
-      name: 'Corporate Ownership Structures',
-      category: 'corporate',
-      description: 'Ultimate beneficial ownership and corporate hierarchies',
-      subscription: 'active',
-      updateFrequency: 'Weekly',
-      coverage: '50+ countries',
-      icon: Network,
-    },
-    {
-      id: 'geo-risk-indicators',
-      name: 'Geographic Risk Indicators',
-      category: 'geographic',
-      description: 'Country-level risk scores, political stability, conflict zones',
-      subscription: 'active',
-      updateFrequency: 'Daily',
-      coverage: '200+ countries',
-      icon: MapPin,
-    },
-    {
-      id: 'port-logistics',
-      name: 'Port & Logistics Intelligence',
-      category: 'geographic',
-      description: 'Port operations, shipping routes, logistics chokepoints',
-      subscription: 'active',
-      updateFrequency: 'Real-time',
-      coverage: 'Global ports',
-      icon: Ship,
-    },
-    {
-      id: 'financial-distress',
-      name: 'Financial Distress Signals',
-      category: 'financial',
-      description: 'Early warning indicators of financial distress, bankruptcies',
-      subscription: 'active',
-      updateFrequency: 'Daily',
-      coverage: 'Global',
-      icon: AlertTriangle,
-    },
-    {
-      id: 'regulatory-actions',
-      name: 'Regulatory Actions Database',
-      category: 'sanctions',
-      description: 'Regulatory enforcement actions, fines, penalties',
-      subscription: 'active',
-      updateFrequency: 'Daily',
-      coverage: 'Global',
-      icon: FileText,
-    },
-    {
-      id: 'supply-chain-mapping',
-      name: 'Supply Chain Network Mapping',
-      category: 'corporate',
-      description: 'Supplier relationships, dependencies, network analysis',
-      subscription: 'pending',
-      updateFrequency: 'Weekly',
-      coverage: 'Global',
-      icon: Network,
-    },
-    {
-      id: 'commodity-prices',
-      name: 'Commodity Price Intelligence',
-      category: 'financial',
-      description: 'Real-time commodity prices, futures, market volatility',
-      subscription: 'pending',
-      updateFrequency: 'Real-time',
-      coverage: 'Global markets',
-      icon: DollarSign,
-    },
-  ];
+  // Generate categories dynamically from datasets
+  const categories = useMemo(() => {
+    const categoryMap = new Map<string, number>();
+    datasets.forEach(dataset => {
+      const count = categoryMap.get(dataset.category) || 0;
+      categoryMap.set(dataset.category, count + 1);
+    });
+    
+    const categoryList = [
+      { id: 'all', name: 'All Datasets', count: datasets.length },
+    ];
+    
+    categoryMap.forEach((count, category) => {
+      // Capitalize category name
+      const categoryName = category
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      categoryList.push({ id: category, name: categoryName, count });
+    });
+    
+    return categoryList;
+  }, [datasets]);
   
-  const filteredDatasets = availableDatasets.filter(dataset => {
-    const matchesSearch = dataset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         dataset.description.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filter datasets
+  const filteredDatasets = datasets.filter(dataset => {
+    const matchesSearch = dataset.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         dataset.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || dataset.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
   
-  const selectedDataset = availableDatasets.find(d => d.id === config.datasetId);
-  const SelectedIcon = selectedDataset?.icon || ShoppingBag;
+  const selectedDataset = datasets.find(d => d.id === config.datasetId);
+  const SelectedIcon = selectedDataset ? getIconComponent(selectedDataset.icon) : ShoppingBag;
   
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="w-6 h-6 text-slate-400 animate-spin" />
+        <span className="ml-2 text-sm text-slate-600">Loading datasets...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Selected Dataset Display */}
@@ -2344,18 +2314,21 @@ const SpectrLiveDataSettings: React.FC<{
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="text-sm font-semibold text-emerald-900">{selectedDataset.name}</h3>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                  selectedDataset.subscription === 'active'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-amber-500 text-white'
-                }`}>
-                  {selectedDataset.subscription === 'active' ? 'Active' : 'Pending'}
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-600 text-white">
+                  Active
                 </span>
               </div>
-              <p className="text-xs text-emerald-700 mb-2">{selectedDataset.description}</p>
+              {selectedDataset.description && (
+                <p className="text-xs text-emerald-700 mb-2">{selectedDataset.description}</p>
+              )}
               <div className="flex items-center gap-4 text-[10px] text-emerald-600">
-                <span>📊 {selectedDataset.updateFrequency}</span>
-                <span>🌍 {selectedDataset.coverage}</span>
+                {selectedDataset.type && (
+                  <span>📊 {selectedDataset.type === 'live' ? 'Live Data' : 'Dataset'}</span>
+                )}
+                {selectedDataset.size && <span>💾 {selectedDataset.size}</span>}
+                {selectedDataset.price !== undefined && (
+                  <span>💰 ${selectedDataset.price}</span>
+                )}
               </div>
             </div>
             <button
@@ -2383,24 +2356,26 @@ const SpectrLiveDataSettings: React.FC<{
       </div>
       
       {/* Category Filter */}
-      <div>
-        <Label>Category</Label>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                selectedCategory === category.id
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              {category.name} ({category.count})
-            </button>
-          ))}
+      {categories.length > 1 && (
+        <div>
+          <Label>Category</Label>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  selectedCategory === category.id
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                {category.name} ({category.count})
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       
       {/* Dataset List */}
       <div>
@@ -2408,11 +2383,17 @@ const SpectrLiveDataSettings: React.FC<{
         <div className="space-y-2 mt-2 max-h-96 overflow-y-auto">
           {filteredDatasets.length === 0 ? (
             <div className="text-center py-8 text-slate-400 text-sm">
-              <p>No datasets found</p>
+              <ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="mb-1">No datasets found</p>
+              <p className="text-xs text-slate-500">
+                {datasets.length === 0 
+                  ? 'Create datasets in the Admin page to see them here'
+                  : 'Try adjusting your search or category filter'}
+              </p>
             </div>
           ) : (
             filteredDatasets.map((dataset) => {
-              const DatasetIcon = dataset.icon;
+              const DatasetIcon = getIconComponent(dataset.icon);
               const isSelected = config.datasetId === dataset.id;
               
               return (
@@ -2422,36 +2403,43 @@ const SpectrLiveDataSettings: React.FC<{
                   className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
                     isSelected
                       ? 'border-slate-900 bg-slate-50'
-                      : dataset.subscription === 'active'
-                      ? 'border-emerald-200 hover:border-emerald-300 bg-white'
-                      : 'border-amber-200 hover:border-amber-300 bg-amber-50/30'
+                      : 'border-emerald-200 hover:border-emerald-300 bg-white'
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div className={`p-2 rounded-lg flex-shrink-0 ${
                       isSelected
                         ? 'bg-slate-900 text-white'
-                        : dataset.subscription === 'active'
-                        ? 'bg-emerald-100 text-emerald-600'
-                        : 'bg-amber-100 text-amber-600'
+                        : 'bg-emerald-100 text-emerald-600'
                     }`}>
                       <DatasetIcon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="text-sm font-semibold text-slate-900">{dataset.name}</h4>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                          dataset.subscription === 'active'
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-amber-500 text-white'
-                        }`}>
-                          {dataset.subscription === 'active' ? 'Subscribed' : 'Not Subscribed'}
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-600 text-white">
+                          Active
                         </span>
+                        {dataset.featured && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-600 text-white">
+                            Featured
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-600 mb-2">{dataset.description}</p>
+                      {dataset.description && (
+                        <p className="text-xs text-slate-600 mb-2">{dataset.description}</p>
+                      )}
                       <div className="flex items-center gap-4 text-[10px] text-slate-500">
-                        <span>🔄 {dataset.updateFrequency}</span>
-                        <span>🌍 {dataset.coverage}</span>
+                        {dataset.type && (
+                          <span>📊 {dataset.type === 'live' ? 'Live Data' : 'Dataset'}</span>
+                        )}
+                        {dataset.size && <span>💾 {dataset.size}</span>}
+                        {dataset.price !== undefined && (
+                          <span>💰 ${dataset.price}</span>
+                        )}
+                        {dataset.category && (
+                          <span>📁 {dataset.category}</span>
+                        )}
                       </div>
                     </div>
                     {isSelected && (
@@ -2465,15 +2453,15 @@ const SpectrLiveDataSettings: React.FC<{
         </div>
       </div>
       
-      {/* Subscription Notice */}
-      {selectedDataset && selectedDataset.subscription === 'pending' && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      {/* Info Notice */}
+      {datasets.length === 0 && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
             <div>
-              <p className="text-xs font-medium text-amber-900 mb-1">Subscription Required</p>
-              <p className="text-[10px] text-amber-700">
-                This dataset requires an active subscription. Contact your administrator to enable access.
+              <p className="text-xs font-medium text-blue-900 mb-1">No Datasets Available</p>
+              <p className="text-[10px] text-blue-700">
+                Create datasets in the Admin page. They will appear here automatically once created.
               </p>
             </div>
           </div>
