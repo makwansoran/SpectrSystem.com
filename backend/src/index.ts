@@ -16,6 +16,8 @@ import authRoutes from './routes/auth';
 import organizationRoutes from './routes/organization';
 import contactRoutes from './routes/contact';
 import agentRoutes from './routes/agent';
+import adminRoutes from './routes/admin';
+import companyRoutes from './services/company-intelligence/routes/companies';
 import { db } from './database';
 import { getDatabaseAdapter } from './database/adapter';
 import { verifyEmailConfig } from './services/email';
@@ -41,6 +43,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://spectrsystem.com',
   'https://www.spectrsystem.com',
+  'https://d3a7goc7r9vv8s.cloudfront.net',
   process.env.FRONTEND_URL,
   process.env.CORS_ORIGIN,
   // Support comma-separated multiple origins
@@ -96,6 +99,8 @@ app.use('/api/workflows', workflowRoutes);
 app.use('/api/executions', executionRoutes);
 app.use('/api/intelligence', intelligenceRoutes);
 app.use('/api/agent', agentRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/companies', companyRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

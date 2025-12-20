@@ -272,6 +272,11 @@ async function executeNode(
         output = await executePeriodicDataPullTrigger(periodicPullConfig || {}, context);
         break;
 
+      case 'purchased-data-input':
+        const purchasedDataConfig = node.data.config as import('./nodes/triggers/purchased-data-input').PurchasedDataInputConfig;
+        output = await executePurchasedDataInput(purchasedDataConfig || {}, context);
+        break;
+
       case 'http-request':
         const httpConfig = node.data.config as HttpRequestConfig;
         if (!httpConfig.url) {

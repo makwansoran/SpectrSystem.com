@@ -37,9 +37,87 @@ export function initializeDatabase(): void {
       nodes TEXT DEFAULT '[]',
       edges TEXT DEFAULT '[]',
       is_active INTEGER DEFAULT 0,
+      organization_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Ensure organizations table exists before migration (needed for foreign key)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS organizations (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      plan TEXT DEFAULT 'free',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )
+  `);
+
+  // Check if organization_id column exists (migration for existing databases)
+  const tableInfo = db.prepare("PRAGMA table_info(workflows)").all() as Array<{ name: string; type: string; notnull: number; dflt_value: any; pk: number }>;
+  const hasOrgId = tableInfo.some(col => col.name === 'organization_id');
+
+  if (!hasOrgId) {
+    console.log('🔄 Migrating workflows table to add organization_id column...');
+    
+    // Count existing workflows
+    const countResult = db.prepare('SELECT COUNT(*) as count FROM workflows').get() as { count: number };
+    const workflowCount = countResult.count;
+    
+    if (workflowCount > 0) {
+      console.log(`🗑️  Deleting ${workflowCount} existing workflows (they are not user-specific)...`);
+      db.prepare('DELETE FROM workflows').run();
+    }
+
+    // SQLite doesn't support ALTER TABLE ADD COLUMN with NOT NULL directly
+    // We need to recreate the table
+    console.log('🔄 Recreating workflows table with organization_id...');
+    
+    // Create new table with organization_id
+    db.exec(`
+      CREATE TABLE workflows_new (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        nodes TEXT DEFAULT '[]',
+        edges TEXT DEFAULT '[]',
+        is_active INTEGER DEFAULT 0,
+        organization_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Copy any remaining data (should be empty, but just in case)
+    // We need to provide a default organization_id - use first organization or create a default
+    const orgExists = db.prepare("SELECT id FROM organizations LIMIT 1").get() as { id: string } | undefined;
+    
+    if (orgExists) {
+      const insertStmt = db.prepare(`
+        INSERT INTO workflows_new 
+        SELECT id, name, description, nodes, edges, is_active, 
+               ? as organization_id,
+               created_at, updated_at
+        FROM workflows
+      `);
+      insertStmt.run(orgExists.id);
+    }
+
+    // Drop old table
+    db.exec('DROP TABLE workflows');
+
+    // Rename new table
+    db.exec('ALTER TABLE workflows_new RENAME TO workflows');
+    
+    console.log('✅ Migration complete');
+  }
+
+  // Create index for organization_id
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_workflows_organization_id ON workflows(organization_id);
   `);
 
   // Create executions table
@@ -267,6 +345,239 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_user_organizations_org_id ON user_organizations(organization_id);
   `);
 
+  // ==================== DATASETS TABLE ====================
+  
+  // Datasets/Products table for admin management
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS datasets (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL,
+      type TEXT NOT NULL,
+      price REAL NOT NULL,
+      featured INTEGER DEFAULT 0,
+      formats TEXT DEFAULT '[]',
+      size TEXT,
+      icon TEXT,
+      features TEXT DEFAULT '[]',
+      is_active INTEGER DEFAULT 1,
+      is_public INTEGER DEFAULT 0,
+      config TEXT DEFAULT '{}',
+      created_by TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
+  
+  // Add new columns if they don't exist (migration)
+  try {
+    db.exec(`ALTER TABLE datasets ADD COLUMN is_public INTEGER DEFAULT 0`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    db.exec(`ALTER TABLE datasets ADD COLUMN config TEXT DEFAULT '{}'`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  // Dataset purchases/subscriptions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS dataset_purchases (
+      id TEXT PRIMARY KEY,
+      dataset_id TEXT NOT NULL,
+      organization_id TEXT NOT NULL,
+      purchased_at TEXT NOT NULL,
+      status TEXT DEFAULT 'active',
+      FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE CASCADE,
+      FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for datasets
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_datasets_category ON datasets(category);
+    CREATE INDEX IF NOT EXISTS idx_datasets_type ON datasets(type);
+    CREATE INDEX IF NOT EXISTS idx_datasets_featured ON datasets(featured);
+    CREATE INDEX IF NOT EXISTS idx_datasets_active ON datasets(is_active);
+    CREATE INDEX IF NOT EXISTS idx_dataset_purchases_dataset_id ON dataset_purchases(dataset_id);
+    CREATE INDEX IF NOT EXISTS idx_dataset_purchases_org_id ON dataset_purchases(organization_id);
+  `);
+
+  // ==================== COMPANY INTELLIGENCE TABLES ====================
+  
+  // Sources table - tracks all data sources
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS company_sources (
+      id TEXT PRIMARY KEY,
+      source_name TEXT NOT NULL,
+      source_url TEXT NOT NULL,
+      license_type TEXT,
+      raw_file_path TEXT,
+      ingestion_timestamp TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  // Companies table - core identity
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS companies (
+      id TEXT PRIMARY KEY,
+      legal_name TEXT NOT NULL,
+      org_number TEXT,
+      country TEXT,
+      incorporation_date TEXT,
+      listing_status TEXT,
+      tickers TEXT DEFAULT '[]',
+      isins TEXT DEFAULT '[]',
+      lei TEXT,
+      version INTEGER DEFAULT 1,
+      is_deleted INTEGER DEFAULT 0,
+      source_id TEXT NOT NULL,
+      confidence_level TEXT DEFAULT 'MEDIUM',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (source_id) REFERENCES company_sources(id)
+    )
+  `);
+
+  // Company versions - historical tracking
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS company_versions (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      version INTEGER NOT NULL,
+      legal_name TEXT NOT NULL,
+      org_number TEXT,
+      country TEXT,
+      incorporation_date TEXT,
+      listing_status TEXT,
+      tickers TEXT DEFAULT '[]',
+      isins TEXT DEFAULT '[]',
+      lei TEXT,
+      source_id TEXT NOT NULL,
+      confidence_level TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (source_id) REFERENCES company_sources(id)
+    )
+  `);
+
+  // Company relationships
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS company_relationships (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      related_company_id TEXT NOT NULL,
+      relationship_type TEXT NOT NULL,
+      ownership_percentage REAL,
+      valid_from TEXT,
+      valid_to TEXT,
+      source_id TEXT NOT NULL,
+      confidence_level TEXT DEFAULT 'MEDIUM',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (related_company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (source_id) REFERENCES company_sources(id)
+    )
+  `);
+
+  // Business profile
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS company_business_profiles (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      industry_codes TEXT DEFAULT '[]',
+      business_segments TEXT DEFAULT '[]',
+      operating_regions TEXT DEFAULT '[]',
+      key_assets TEXT DEFAULT '{}',
+      version INTEGER DEFAULT 1,
+      source_id TEXT NOT NULL,
+      confidence_level TEXT DEFAULT 'MEDIUM',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (source_id) REFERENCES company_sources(id)
+    )
+  `);
+
+  // Financial records - versioned by fiscal period
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS company_financials (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      fiscal_period TEXT NOT NULL,
+      currency TEXT NOT NULL,
+      revenue REAL,
+      ebitda REAL,
+      net_income REAL,
+      capex REAL,
+      total_debt REAL,
+      source_document TEXT,
+      reported_date TEXT,
+      source_id TEXT NOT NULL,
+      confidence_level TEXT DEFAULT 'MEDIUM',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (source_id) REFERENCES company_sources(id),
+      UNIQUE(company_id, fiscal_period, source_id)
+    )
+  `);
+
+  // Workforce & governance
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS company_workforce (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      headcount INTEGER,
+      headcount_by_region TEXT DEFAULT '{}',
+      executives TEXT DEFAULT '[]',
+      board_members TEXT DEFAULT '[]',
+      version INTEGER DEFAULT 1,
+      source_id TEXT NOT NULL,
+      confidence_level TEXT DEFAULT 'MEDIUM',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (source_id) REFERENCES company_sources(id)
+    )
+  `);
+
+  // Events
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS company_events (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      event_date TEXT NOT NULL,
+      severity TEXT,
+      description TEXT,
+      source_reference TEXT,
+      source_id TEXT NOT NULL,
+      confidence_level TEXT DEFAULT 'MEDIUM',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (source_id) REFERENCES company_sources(id)
+    )
+  `);
+
+  // Indexes for company intelligence
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_companies_org_number ON companies(org_number);
+    CREATE INDEX IF NOT EXISTS idx_companies_country ON companies(country);
+    CREATE INDEX IF NOT EXISTS idx_companies_version ON companies(version);
+    CREATE INDEX IF NOT EXISTS idx_company_versions_company_id ON company_versions(company_id);
+    CREATE INDEX IF NOT EXISTS idx_company_versions_version ON company_versions(version);
+    CREATE INDEX IF NOT EXISTS idx_company_relationships_company_id ON company_relationships(company_id);
+    CREATE INDEX IF NOT EXISTS idx_company_relationships_related_id ON company_relationships(related_company_id);
+    CREATE INDEX IF NOT EXISTS idx_company_financials_company_id ON company_financials(company_id);
+    CREATE INDEX IF NOT EXISTS idx_company_financials_period ON company_financials(fiscal_period);
+    CREATE INDEX IF NOT EXISTS idx_company_events_company_id ON company_events(company_id);
+    CREATE INDEX IF NOT EXISTS idx_company_events_date ON company_events(event_date);
+  `);
+
   console.log('✅ Database initialized successfully');
 }
 
@@ -277,7 +588,7 @@ export function initializeDatabase(): void {
 /**
  * Get all workflows (list view)
  */
-export function getAllWorkflows(): WorkflowListItem[] {
+export function getAllWorkflows(organizationId: string): WorkflowListItem[] {
   const stmt = db.prepare(`
     SELECT 
       w.id,
@@ -289,10 +600,11 @@ export function getAllWorkflows(): WorkflowListItem[] {
       w.updated_at,
       (SELECT MAX(start_time) FROM executions WHERE workflow_id = w.id) as last_executed
     FROM workflows w
+    WHERE w.organization_id = ?
     ORDER BY w.updated_at DESC
   `);
 
-  const rows = stmt.all() as any[];
+  const rows = stmt.all(organizationId) as any[];
 
   return rows.map(row => ({
     id: row.id,
@@ -309,12 +621,12 @@ export function getAllWorkflows(): WorkflowListItem[] {
 /**
  * Get a single workflow by ID
  */
-export function getWorkflowById(id: string): Workflow | null {
+export function getWorkflowById(id: string, organizationId: string): Workflow | null {
   const stmt = db.prepare(`
-    SELECT * FROM workflows WHERE id = ?
+    SELECT * FROM workflows WHERE id = ? AND organization_id = ?
   `);
 
-  const row = stmt.get(id) as any;
+  const row = stmt.get(id, organizationId) as any;
 
   if (!row) return null;
 
@@ -333,13 +645,13 @@ export function getWorkflowById(id: string): Workflow | null {
 /**
  * Create a new workflow
  */
-export function createWorkflow(data: CreateWorkflowRequest): Workflow {
+export function createWorkflow(data: CreateWorkflowRequest, organizationId: string): Workflow {
   const id = uuidv4();
   const now = new Date().toISOString();
 
   const stmt = db.prepare(`
-    INSERT INTO workflows (id, name, description, nodes, edges, is_active, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO workflows (id, name, description, nodes, edges, is_active, organization_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -349,18 +661,19 @@ export function createWorkflow(data: CreateWorkflowRequest): Workflow {
     JSON.stringify(data.nodes || []),
     JSON.stringify(data.edges || []),
     0,
+    organizationId,
     now,
     now
   );
 
-  return getWorkflowById(id)!;
+  return getWorkflowById(id, organizationId)!;
 }
 
 /**
  * Update an existing workflow
  */
-export function updateWorkflow(id: string, data: UpdateWorkflowRequest): Workflow | null {
-  const existing = getWorkflowById(id);
+export function updateWorkflow(id: string, data: UpdateWorkflowRequest, organizationId: string): Workflow | null {
+  const existing = getWorkflowById(id, organizationId);
   if (!existing) return null;
 
   const now = new Date().toISOString();
@@ -368,7 +681,7 @@ export function updateWorkflow(id: string, data: UpdateWorkflowRequest): Workflo
   const stmt = db.prepare(`
     UPDATE workflows
     SET name = ?, description = ?, nodes = ?, edges = ?, is_active = ?, updated_at = ?
-    WHERE id = ?
+    WHERE id = ? AND organization_id = ?
   `);
 
   stmt.run(
@@ -378,18 +691,19 @@ export function updateWorkflow(id: string, data: UpdateWorkflowRequest): Workflo
     JSON.stringify(data.edges ?? existing.edges),
     data.isActive !== undefined ? (data.isActive ? 1 : 0) : (existing.isActive ? 1 : 0),
     now,
-    id
+    id,
+    organizationId
   );
 
-  return getWorkflowById(id);
+  return getWorkflowById(id, organizationId);
 }
 
 /**
  * Delete a workflow
  */
-export function deleteWorkflow(id: string): boolean {
-  const stmt = db.prepare('DELETE FROM workflows WHERE id = ?');
-  const result = stmt.run(id);
+export function deleteWorkflow(id: string, organizationId: string): boolean {
+  const stmt = db.prepare('DELETE FROM workflows WHERE id = ? AND organization_id = ?');
+  const result = stmt.run(id, organizationId);
   return result.changes > 0;
 }
 

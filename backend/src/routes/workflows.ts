@@ -4,29 +4,88 @@
  */
 
 import { Router, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import {
   getAllWorkflows,
   getWorkflowById,
   createWorkflow,
   updateWorkflow,
   deleteWorkflow,
-  getExecutions
+  getExecutions,
+  getUserOrganization,
+  db
 } from '../database';
 import { executeWorkflow } from '../services/executor';
 import { CreateWorkflowRequest, UpdateWorkflowRequest } from '../types';
 
 const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+
+/**
+ * Middleware to verify JWT token and get user organization
+ */
+const authenticate = async (req: Request, res: Response, next: any) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const userId = decoded.userId;
+
+    // Get user's organization
+    let userOrg;
+    if (dbType === 'postgresql' && getUserOrganization) {
+      userOrg = await getUserOrganization(userId);
+    } else {
+      userOrg = (db as any).prepare(`
+        SELECT o.*, uo.role
+        FROM organizations o
+        JOIN user_organizations uo ON o.id = uo.organization_id
+        WHERE uo.user_id = ?
+      `).get(userId);
+    }
+
+    if (!userOrg) {
+      return res.status(403).json({
+        success: false,
+        error: 'User organization not found',
+      });
+    }
+
+    (req as any).userId = userId;
+    (req as any).organizationId = userOrg.id;
+    next();
+  } catch (error: any) {
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token',
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      error: 'Authentication error',
+    });
+  }
+};
 
 /**
  * GET /api/workflows
- * List all workflows
+ * List all workflows for the authenticated user's organization
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
-    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const organizationId = (req as any).organizationId;
     const workflows = dbType === 'postgresql' 
-      ? await getAllWorkflows() 
-      : getAllWorkflows();
+      ? await getAllWorkflows(organizationId) 
+      : getAllWorkflows(organizationId);
     res.json({
       success: true,
       data: workflows || []
@@ -42,15 +101,15 @@ router.get('/', async (req: Request, res: Response) => {
 
 /**
  * GET /api/workflows/:id
- * Get a single workflow by ID
+ * Get a single workflow by ID (must belong to user's organization)
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const organizationId = (req as any).organizationId;
     const workflow = dbType === 'postgresql' 
-      ? await getWorkflowById(id) 
-      : getWorkflowById(id);
+      ? await getWorkflowById(id, organizationId) 
+      : getWorkflowById(id, organizationId);
 
     if (!workflow) {
       return res.status(404).json({
@@ -74,11 +133,12 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 /**
  * POST /api/workflows
- * Create a new workflow
+ * Create a new workflow (associated with user's organization)
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authenticate, async (req: Request, res: Response) => {
   try {
     const data: CreateWorkflowRequest = req.body;
+    const organizationId = (req as any).organizationId;
 
     if (!data.name) {
       return res.status(400).json({
@@ -87,10 +147,9 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
     const workflow = dbType === 'postgresql' 
-      ? await createWorkflow(data) 
-      : createWorkflow(data);
+      ? await createWorkflow(data, organizationId) 
+      : createWorkflow(data, organizationId);
 
     res.status(201).json({
       success: true,
@@ -108,17 +167,17 @@ router.post('/', async (req: Request, res: Response) => {
 
 /**
  * PUT /api/workflows/:id
- * Update an existing workflow
+ * Update an existing workflow (must belong to user's organization)
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const data: UpdateWorkflowRequest = req.body;
+    const organizationId = (req as any).organizationId;
 
-    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
     const workflow = dbType === 'postgresql' 
-      ? await updateWorkflow(id, data) 
-      : updateWorkflow(id, data);
+      ? await updateWorkflow(id, data, organizationId) 
+      : updateWorkflow(id, data, organizationId);
 
     if (!workflow) {
       return res.status(404).json({
@@ -143,15 +202,15 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 /**
  * DELETE /api/workflows/:id
- * Delete a workflow
+ * Delete a workflow (must belong to user's organization)
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const organizationId = (req as any).organizationId;
     const deleted = dbType === 'postgresql' 
-      ? await deleteWorkflow(id) 
-      : deleteWorkflow(id);
+      ? await deleteWorkflow(id, organizationId) 
+      : deleteWorkflow(id, organizationId);
 
     if (!deleted) {
       return res.status(404).json({
@@ -175,15 +234,15 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 /**
  * POST /api/workflows/:id/execute
- * Execute a workflow
+ * Execute a workflow (must belong to user's organization)
  */
-router.post('/:id/execute', async (req: Request, res: Response) => {
+router.post('/:id/execute', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    const organizationId = (req as any).organizationId;
     const workflow = dbType === 'postgresql' 
-      ? await getWorkflowById(id) 
-      : getWorkflowById(id);
+      ? await getWorkflowById(id, organizationId) 
+      : getWorkflowById(id, organizationId);
 
     if (!workflow) {
       return res.status(404).json({
@@ -210,18 +269,18 @@ router.post('/:id/execute', async (req: Request, res: Response) => {
 
 /**
  * GET /api/workflows/:id/executions
- * Get execution history for a workflow
+ * Get execution history for a workflow (must belong to user's organization)
  */
-router.get('/:id/executions', async (req: Request, res: Response) => {
+router.get('/:id/executions', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { limit, offset } = req.query;
+    const organizationId = (req as any).organizationId;
 
-    // Verify workflow exists
-    const dbType = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+    // Verify workflow exists and belongs to user's organization
     const workflow = dbType === 'postgresql' 
-      ? await getWorkflowById(id) 
-      : getWorkflowById(id);
+      ? await getWorkflowById(id, organizationId) 
+      : getWorkflowById(id, organizationId);
     if (!workflow) {
       return res.status(404).json({
         success: false,

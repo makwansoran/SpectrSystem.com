@@ -54,7 +54,7 @@ export async function initializeDatabase(): Promise<void> {
   const client = await pool.connect();
   
   try {
-    // Create workflows table
+    // Create workflows table (without organization_id first)
     await client.query(`
       CREATE TABLE IF NOT EXISTS workflows (
         id TEXT PRIMARY KEY,
@@ -66,6 +66,47 @@ export async function initializeDatabase(): Promise<void> {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
+    `);
+
+    // Check if organization_id column exists, if not add it
+    const columnCheck = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'workflows' AND column_name = 'organization_id'
+    `);
+
+    if (columnCheck.rows.length === 0) {
+      console.log('➕ Adding organization_id column to workflows table...');
+      
+      // First, delete all existing workflows (they're not user-specific)
+      await client.query('DELETE FROM workflows');
+      
+      // Add the column (nullable first)
+      await client.query(`
+        ALTER TABLE workflows 
+        ADD COLUMN organization_id TEXT
+      `);
+
+      // Add foreign key constraint
+      await client.query(`
+        ALTER TABLE workflows 
+        ADD CONSTRAINT fk_workflows_organization 
+        FOREIGN KEY (organization_id) 
+        REFERENCES organizations(id) 
+        ON DELETE CASCADE
+      `);
+
+      // Make it NOT NULL
+      await client.query(`
+        ALTER TABLE workflows 
+        ALTER COLUMN organization_id SET NOT NULL
+      `);
+    }
+
+    // Create index for organization_id
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_workflows_organization_id 
+      ON workflows(organization_id)
     `);
 
     // Create executions table
@@ -256,6 +297,212 @@ export async function initializeDatabase(): Promise<void> {
       )
     `);
 
+    // Datasets/Products table for admin management
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS datasets (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        category TEXT NOT NULL,
+        type TEXT NOT NULL,
+        price REAL NOT NULL,
+        featured INTEGER DEFAULT 0,
+        formats TEXT DEFAULT '[]',
+        size TEXT,
+        icon TEXT,
+        features TEXT DEFAULT '[]',
+        is_active INTEGER DEFAULT 1,
+        is_public INTEGER DEFAULT 0,
+        config TEXT DEFAULT '{}',
+        created_by TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+    
+    // Add new columns if they don't exist (migration)
+    try {
+      await client.query(`ALTER TABLE datasets ADD COLUMN IF NOT EXISTS is_public INTEGER DEFAULT 0`);
+    } catch (e) {
+      // Column already exists, ignore
+    }
+    try {
+      await client.query(`ALTER TABLE datasets ADD COLUMN IF NOT EXISTS config TEXT DEFAULT '{}'`);
+    } catch (e) {
+      // Column already exists, ignore
+    }
+
+    // Dataset purchases/subscriptions
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dataset_purchases (
+        id TEXT PRIMARY KEY,
+        dataset_id TEXT NOT NULL,
+        organization_id TEXT NOT NULL,
+        purchased_at TEXT NOT NULL,
+        status TEXT DEFAULT 'active',
+        FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE CASCADE,
+        FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+      )
+    `);
+
+    // ==================== COMPANY INTELLIGENCE TABLES ====================
+    
+    // Sources table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS company_sources (
+        id TEXT PRIMARY KEY,
+        source_name TEXT NOT NULL,
+        source_url TEXT NOT NULL,
+        license_type TEXT,
+        raw_file_path TEXT,
+        ingestion_timestamp TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    `);
+
+    // Companies table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS companies (
+        id TEXT PRIMARY KEY,
+        legal_name TEXT NOT NULL,
+        org_number TEXT,
+        country TEXT,
+        incorporation_date TEXT,
+        listing_status TEXT,
+        tickers TEXT DEFAULT '[]',
+        isins TEXT DEFAULT '[]',
+        lei TEXT,
+        version INTEGER DEFAULT 1,
+        is_deleted INTEGER DEFAULT 0,
+        source_id TEXT NOT NULL,
+        confidence_level TEXT DEFAULT 'MEDIUM',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (source_id) REFERENCES company_sources(id)
+      )
+    `);
+
+    // Company versions
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS company_versions (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        legal_name TEXT NOT NULL,
+        org_number TEXT,
+        country TEXT,
+        incorporation_date TEXT,
+        listing_status TEXT,
+        tickers TEXT DEFAULT '[]',
+        isins TEXT DEFAULT '[]',
+        lei TEXT,
+        source_id TEXT NOT NULL,
+        confidence_level TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_id) REFERENCES company_sources(id)
+      )
+    `);
+
+    // Company relationships
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS company_relationships (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        related_company_id TEXT NOT NULL,
+        relationship_type TEXT NOT NULL,
+        ownership_percentage REAL,
+        valid_from TEXT,
+        valid_to TEXT,
+        source_id TEXT NOT NULL,
+        confidence_level TEXT DEFAULT 'MEDIUM',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+        FOREIGN KEY (related_company_id) REFERENCES companies(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_id) REFERENCES company_sources(id)
+      )
+    `);
+
+    // Business profile
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS company_business_profiles (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        industry_codes TEXT DEFAULT '[]',
+        business_segments TEXT DEFAULT '[]',
+        operating_regions TEXT DEFAULT '[]',
+        key_assets TEXT DEFAULT '{}',
+        version INTEGER DEFAULT 1,
+        source_id TEXT NOT NULL,
+        confidence_level TEXT DEFAULT 'MEDIUM',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_id) REFERENCES company_sources(id)
+      )
+    `);
+
+    // Financial records
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS company_financials (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        fiscal_period TEXT NOT NULL,
+        currency TEXT NOT NULL,
+        revenue REAL,
+        ebitda REAL,
+        net_income REAL,
+        capex REAL,
+        total_debt REAL,
+        source_document TEXT,
+        reported_date TEXT,
+        source_id TEXT NOT NULL,
+        confidence_level TEXT DEFAULT 'MEDIUM',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_id) REFERENCES company_sources(id),
+        UNIQUE(company_id, fiscal_period, source_id)
+      )
+    `);
+
+    // Workforce & governance
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS company_workforce (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        headcount INTEGER,
+        headcount_by_region TEXT DEFAULT '{}',
+        executives TEXT DEFAULT '[]',
+        board_members TEXT DEFAULT '[]',
+        version INTEGER DEFAULT 1,
+        source_id TEXT NOT NULL,
+        confidence_level TEXT DEFAULT 'MEDIUM',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_id) REFERENCES company_sources(id)
+      )
+    `);
+
+    // Events
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS company_events (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        event_date TEXT NOT NULL,
+        severity TEXT,
+        description TEXT,
+        source_reference TEXT,
+        source_id TEXT NOT NULL,
+        confidence_level TEXT DEFAULT 'MEDIUM',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_id) REFERENCES company_sources(id)
+      )
+    `);
+
     // Create indexes
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_intelligence_cases_name_unique ON intelligence_cases(name);
@@ -274,6 +521,23 @@ export async function initializeDatabase(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token);
       CREATE INDEX IF NOT EXISTS idx_user_organizations_user_id ON user_organizations(user_id);
       CREATE INDEX IF NOT EXISTS idx_user_organizations_org_id ON user_organizations(organization_id);
+      CREATE INDEX IF NOT EXISTS idx_datasets_category ON datasets(category);
+      CREATE INDEX IF NOT EXISTS idx_datasets_type ON datasets(type);
+      CREATE INDEX IF NOT EXISTS idx_datasets_featured ON datasets(featured);
+      CREATE INDEX IF NOT EXISTS idx_companies_org_number ON companies(org_number);
+      CREATE INDEX IF NOT EXISTS idx_companies_country ON companies(country);
+      CREATE INDEX IF NOT EXISTS idx_companies_version ON companies(version);
+      CREATE INDEX IF NOT EXISTS idx_company_versions_company_id ON company_versions(company_id);
+      CREATE INDEX IF NOT EXISTS idx_company_versions_version ON company_versions(version);
+      CREATE INDEX IF NOT EXISTS idx_company_relationships_company_id ON company_relationships(company_id);
+      CREATE INDEX IF NOT EXISTS idx_company_relationships_related_id ON company_relationships(related_company_id);
+      CREATE INDEX IF NOT EXISTS idx_company_financials_company_id ON company_financials(company_id);
+      CREATE INDEX IF NOT EXISTS idx_company_financials_period ON company_financials(fiscal_period);
+      CREATE INDEX IF NOT EXISTS idx_company_events_company_id ON company_events(company_id);
+      CREATE INDEX IF NOT EXISTS idx_company_events_date ON company_events(event_date);
+      CREATE INDEX IF NOT EXISTS idx_datasets_active ON datasets(is_active);
+      CREATE INDEX IF NOT EXISTS idx_dataset_purchases_dataset_id ON dataset_purchases(dataset_id);
+      CREATE INDEX IF NOT EXISTS idx_dataset_purchases_org_id ON dataset_purchases(organization_id);
     `);
 
     console.log('✅ PostgreSQL database initialized successfully');
@@ -283,7 +547,7 @@ export async function initializeDatabase(): Promise<void> {
 }
 
 // Workflow Operations
-export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
+export async function getAllWorkflows(organizationId: string): Promise<WorkflowListItem[]> {
   const { sql, params } = convertQuery(`
     SELECT 
       w.id,
@@ -295,8 +559,9 @@ export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
       w.updated_at,
       (SELECT MAX(start_time) FROM executions WHERE workflow_id = w.id) as last_executed
     FROM workflows w
+    WHERE w.organization_id = ?
     ORDER BY w.updated_at DESC
-  `);
+  `, [organizationId]);
 
   const result = await pool.query(sql, params);
   const rows = result.rows;
@@ -313,8 +578,8 @@ export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
   }));
 }
 
-export async function getWorkflowById(id: string): Promise<Workflow | null> {
-  const { sql, params } = convertQuery('SELECT * FROM workflows WHERE id = ?', [id]);
+export async function getWorkflowById(id: string, organizationId: string): Promise<Workflow | null> {
+  const { sql, params } = convertQuery('SELECT * FROM workflows WHERE id = ? AND organization_id = ?', [id, organizationId]);
   const result = await pool.query(sql, params);
   const row = result.rows[0];
 
@@ -332,28 +597,28 @@ export async function getWorkflowById(id: string): Promise<Workflow | null> {
   };
 }
 
-export async function createWorkflow(data: CreateWorkflowRequest): Promise<Workflow> {
+export async function createWorkflow(data: CreateWorkflowRequest, organizationId: string): Promise<Workflow> {
   const id = uuidv4();
   const now = new Date().toISOString();
 
   const { sql, params } = convertQuery(`
-    INSERT INTO workflows (id, name, description, nodes, edges, is_active, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `, [id, data.name, data.description || '', JSON.stringify(data.nodes || []), JSON.stringify(data.edges || []), 0, now, now]);
+    INSERT INTO workflows (id, name, description, nodes, edges, is_active, organization_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [id, data.name, data.description || '', JSON.stringify(data.nodes || []), JSON.stringify(data.edges || []), 0, organizationId, now, now]);
 
   await pool.query(sql, params);
-  return (await getWorkflowById(id))!;
+  return (await getWorkflowById(id, organizationId))!;
 }
 
-export async function updateWorkflow(id: string, data: UpdateWorkflowRequest): Promise<Workflow | null> {
-  const existing = await getWorkflowById(id);
+export async function updateWorkflow(id: string, data: UpdateWorkflowRequest, organizationId: string): Promise<Workflow | null> {
+  const existing = await getWorkflowById(id, organizationId);
   if (!existing) return null;
 
   const now = new Date().toISOString();
   const { sql, params } = convertQuery(`
     UPDATE workflows
     SET name = ?, description = ?, nodes = ?, edges = ?, is_active = ?, updated_at = ?
-    WHERE id = ?
+    WHERE id = ? AND organization_id = ?
   `, [
     data.name ?? existing.name,
     data.description ?? existing.description,
@@ -361,15 +626,16 @@ export async function updateWorkflow(id: string, data: UpdateWorkflowRequest): P
     JSON.stringify(data.edges ?? existing.edges),
     data.isActive !== undefined ? (data.isActive ? 1 : 0) : (existing.isActive ? 1 : 0),
     now,
-    id
+    id,
+    organizationId
   ]);
 
   await pool.query(sql, params);
-  return await getWorkflowById(id);
+  return await getWorkflowById(id, organizationId);
 }
 
-export async function deleteWorkflow(id: string): Promise<boolean> {
-  const { sql, params } = convertQuery('DELETE FROM workflows WHERE id = ?', [id]);
+export async function deleteWorkflow(id: string, organizationId: string): Promise<boolean> {
+  const { sql, params } = convertQuery('DELETE FROM workflows WHERE id = ? AND organization_id = ?', [id, organizationId]);
   const result = await pool.query(sql, params);
   return result.rowCount > 0;
 }
@@ -653,7 +919,7 @@ export async function createPasswordResetToken(data: {
 
 export async function getPasswordResetToken(token: string): Promise<any | null> {
   const { sql, params } = convertQuery(`
-    SELECT prt.*, u.email, u.name
+    SELECT prt.*, u.id as user_id, u.email, u.name
     FROM password_reset_tokens prt
     JOIN users u ON prt.user_id = u.id
     WHERE prt.token = ? AND prt.used = 0 AND prt.expires_at > ?
